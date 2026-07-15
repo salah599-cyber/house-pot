@@ -19,3 +19,5 @@ export const MAX_PLAYERS_CAP = 9;
 export const DEFAULT_BUY_IN = 50;
 
 export const INVITE_EXPIRY_DAYS = 14;
+
+export const REBUY_PRESET_MULTIPLIERS = [1, 2, 3, 5, 10] as const;

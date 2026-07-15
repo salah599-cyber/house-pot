@@ -7,12 +7,12 @@ import {
   recordQuickBuyInAction,
   recordTransactionAction,
 } from "@/server/actions/session";
+import { REBUY_PRESET_MULTIPLIERS } from "@/lib/constants";
 import { formatMoney } from "@/lib/dates";
 import type { ParticipantTotals } from "@/lib/games/totals";
 import { participantDisplayName } from "@/lib/games/totals";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 
 type SeatedPlayer = {
   id: string;
@@ -39,16 +39,32 @@ export function LiveSeatMap({
 }: LiveSeatMapProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const buyInAmount = Number(defaultBuyIn);
 
   const sorted = [...seatedPlayers].sort(
     (a, b) => (a.seatNumber ?? 99) - (b.seatNumber ?? 99),
   );
 
+  function recordPreset(
+    participantId: string,
+    multiplier: number,
+    hasBuyIn: boolean,
+  ) {
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("participantId", participantId);
+      formData.set("type", hasBuyIn ? "rebuy" : "buy_in");
+      formData.set("amount", String(buyInAmount * multiplier));
+      await recordTransactionAction(gameId, formData);
+      router.refresh();
+    });
+  }
+
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {sorted.map((player) => {
         const totals = totalsByParticipant[player.id];
-        const rebuyId = `rebuy-${player.id}`;
+        const hasBuyIn = (totals?.totalBuyIn ?? 0) > 0;
 
         return (
           <Card key={player.id} className="border-border/80 shadow-sm">
@@ -82,10 +98,10 @@ export function LiveSeatMap({
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              <div className="space-y-2">
                 <Button
                   size="lg"
-                  className="h-12 flex-1 sm:h-9 sm:flex-none"
+                  className="h-12 w-full sm:h-9"
                   disabled={isPending}
                   onClick={() =>
                     startTransition(async () => {
@@ -96,36 +112,23 @@ export function LiveSeatMap({
                 >
                   Buy-in / Rebuy {defaultBuyIn}
                 </Button>
-                <form
-                  className="flex flex-1 flex-col gap-2 sm:flex-row"
-                  action={(formData) =>
-                    startTransition(async () => {
-                      formData.set("participantId", player.id);
-                      formData.set("type", "rebuy");
-                      await recordTransactionAction(gameId, formData);
-                      router.refresh();
-                    })
-                  }
-                >
-                  <Input
-                    id={rebuyId}
-                    name="amount"
-                    type="number"
-                    min="1"
-                    step="1"
-                    defaultValue={defaultBuyIn}
-                    className="h-12 sm:h-9"
-                  />
-                  <Button
-                    size="lg"
-                    type="submit"
-                    variant="outline"
-                    disabled={isPending}
-                    className="h-12 sm:h-9"
-                  >
-                    Rebuy
-                  </Button>
-                </form>
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                  {REBUY_PRESET_MULTIPLIERS.map((multiplier) => (
+                    <Button
+                      key={multiplier}
+                      size="lg"
+                      variant="outline"
+                      disabled={isPending}
+                      className="h-12 flex-col gap-0 px-1 text-xs sm:h-9 sm:text-sm"
+                      onClick={() => recordPreset(player.id, multiplier, hasBuyIn)}
+                    >
+                      <span>{multiplier}×</span>
+                      <span className="text-muted-foreground">
+                        {formatMoney(buyInAmount * multiplier, currency)}
+                      </span>
+                    </Button>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
