@@ -250,6 +250,13 @@ export const usersRelations = relations(users, ({ many }) => ({
   participants: many(gameParticipants),
 }));
 
+export const userRolesRelations = relations(userRoles, ({ one }) => ({
+  user: one(users, {
+    fields: [userRoles.userId],
+    references: [users.id],
+  }),
+}));
+
 export const gamesRelations = relations(games, ({ one, many }) => ({
   host: one(users, { fields: [games.hostId], references: [users.id] }),
   participants: many(gameParticipants),
