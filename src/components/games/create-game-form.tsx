@@ -4,8 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { FormFeedback } from "@/components/admin/form-feedback";
+import { InvitePlayersFields } from "@/components/games/invite-players-fields";
 import { createGameAction } from "@/server/actions/games";
 import { BUY_IN_OPTIONS, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_MAX_PLAYERS } from "@/lib/constants";
+import type { InvitableRegisteredPlayer } from "@/lib/queries/players";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,9 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 
 type CreateGameFormProps = {
+  registeredPlayers: InvitableRegisteredPlayer[];
   defaults?: {
     currency: string;
     defaultBuyIn: string;
@@ -31,7 +33,7 @@ type FeedbackState = {
   message: string;
 } | null;
 
-export function CreateGameForm({ defaults }: CreateGameFormProps) {
+export function CreateGameForm({ registeredPlayers, defaults }: CreateGameFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<FeedbackState>(null);
@@ -59,9 +61,9 @@ export function CreateGameForm({ defaults }: CreateGameFormProps) {
               });
             } else {
               setFeedback({
-                type: "warning",
+                type: "success",
                 message:
-                  "Game created with no player emails. Add emails below on the game page or create again with invite emails filled in.",
+                  "Game created. Select registered players or add unregistered emails on the game page to invite people.",
               });
             }
 
@@ -139,20 +141,7 @@ export function CreateGameForm({ defaults }: CreateGameFormProps) {
         <Input id="location" name="location" placeholder="Smith's place" />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="inviteEmails">Invite player emails</Label>
-        <Textarea
-          id="inviteEmails"
-          name="inviteEmails"
-          placeholder="player1@email.com, player2@email.com"
-          rows={4}
-        />
-        <p className="text-xs text-muted-foreground">
-          Add player emails here to invite them when the game is created. Registered players get
-          an in-app notification; new players get a registration invite. You can also invite later
-          from the game page.
-        </p>
-      </div>
+      <InvitePlayersFields registeredPlayers={registeredPlayers} />
 
       <Button type="submit" disabled={isPending}>
         {isPending ? "Creating..." : "Create game & send invites"}

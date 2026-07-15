@@ -1,7 +1,7 @@
-import { and, desc, eq, or } from "drizzle-orm";
+import { and, desc, eq, inArray, or } from "drizzle-orm";
 
-import { isSuperAdmin } from "@/lib/auth/roles";
-import { getUserRoles, requireDbUser } from "@/lib/auth/session";
+import { isPlayer, isSuperAdmin } from "@/lib/auth/roles";
+import { getUserRoles, requireDbUser, requireRole } from "@/lib/auth/session";
 import { isGameInviteActive } from "@/lib/game-invites";
 import { db } from "@/lib/db";
 import {
@@ -13,6 +13,55 @@ import {
   transactions,
   users,
 } from "@/lib/db/schema";
+
+export type InvitableRegisteredPlayer = {
+  id: string;
+  displayName: string;
+  email: string;
+};
+
+export async function getInvitableRegisteredPlayers(options?: {
+  hostUserId?: string;
+  excludeGameId?: string;
+}) {
+  const host = options?.hostUserId
+    ? { id: options.hostUserId }
+    : await requireRole("host");
+
+  const registeredUsers = await db.query.users.findMany({
+    where: eq(users.disabled, false),
+    with: { roles: true },
+    orderBy: [users.displayName],
+  });
+
+  let excludeUserIds = new Set<string>([host.id]);
+
+  if (options?.excludeGameId) {
+    const participants = await db.query.gameParticipants.findMany({
+      where: eq(gameParticipants.gameId, options.excludeGameId),
+      columns: { userId: true },
+    });
+
+    for (const participant of participants) {
+      if (participant.userId) {
+        excludeUserIds.add(participant.userId);
+      }
+    }
+  }
+
+  return registeredUsers
+    .filter(
+      (user) =>
+        user.id !== host.id &&
+        !excludeUserIds.has(user.id) &&
+        isPlayer(getUserRoles(user)),
+    )
+    .map((user) => ({
+      id: user.id,
+      displayName: user.displayName,
+      email: user.email,
+    })) satisfies InvitableRegisteredPlayer[];
+}
 
 export async function getHostGames() {
   const user = await requireDbUser();
@@ -43,7 +92,7 @@ export async function getPlayerDashboardData() {
 
   const pendingInviteRows = await db.query.gameInvites.findMany({
     where: and(
-      eq(gameInvites.email, user.email),
+      or(eq(gameInvites.userId, user.id), eq(gameInvites.email, user.email)),
       or(eq(gameInvites.status, "pending"), eq(gameInvites.status, "registered")),
     ),
     with: {

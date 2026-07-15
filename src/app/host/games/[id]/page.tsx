@@ -10,6 +10,7 @@ import { DesktopTable, MobileStack, MobileStackItem } from "@/components/ui/mobi
 import { getUserRoles, requireRole } from "@/lib/auth/session";
 import { getGameForHost } from "@/lib/auth/permissions";
 import { formatDateTime } from "@/lib/dates";
+import { getInvitableRegisteredPlayers } from "@/lib/queries/players";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +33,10 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
   const user = await requireRole("host");
   const { id } = await params;
   const game = await getGameForHost(id, user.id, getUserRoles(user));
+  const registeredPlayers = await getInvitableRegisteredPlayers({
+    hostUserId: user.id,
+    excludeGameId: id,
+  });
 
   if (!game) {
     notFound();
@@ -131,12 +136,12 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
                 <CardHeader>
                   <CardTitle>Invite players</CardTitle>
                   <CardDescription>
-                    New players receive a registration invite. Existing players get a game
-                    notification.
+                    Select registered players for instant in-app invites. Add emails only for
+                    people not registered yet.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <InvitePlayersForm gameId={game.id} />
+                  <InvitePlayersForm gameId={game.id} registeredPlayers={registeredPlayers} />
                 </CardContent>
               </Card>
 

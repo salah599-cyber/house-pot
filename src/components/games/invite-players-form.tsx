@@ -4,16 +4,23 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { FormFeedback } from "@/components/admin/form-feedback";
+import { InvitePlayersFields } from "@/components/games/invite-players-fields";
 import { invitePlayersAction } from "@/server/actions/games";
+import type { InvitableRegisteredPlayer } from "@/lib/queries/players";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 
 type FeedbackState = {
   type: "success" | "warning" | "error";
   message: string;
 } | null;
 
-export function InvitePlayersForm({ gameId }: { gameId: string }) {
+export function InvitePlayersForm({
+  gameId,
+  registeredPlayers,
+}: {
+  gameId: string;
+  registeredPlayers: InvitableRegisteredPlayer[];
+}) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<FeedbackState>(null);
@@ -41,7 +48,7 @@ export function InvitePlayersForm({ gameId }: { gameId: string }) {
               type: "success",
               message:
                 "sent" in result && result.sent === 1
-                  ? "Game invite sent. The player will see it on their dashboard."
+                  ? "Game invite sent. Registered players will see it on their dashboard."
                   : `Sent ${"sent" in result ? result.sent : 0} game invite(s).`,
             });
           }
@@ -51,10 +58,9 @@ export function InvitePlayersForm({ gameId }: { gameId: string }) {
       }
     >
       {feedback ? <FormFeedback type={feedback.type} message={feedback.message} /> : null}
-      <Textarea
-        name="inviteEmails"
-        placeholder="Add emails separated by commas or new lines"
-        rows={3}
+      <InvitePlayersFields
+        registeredPlayers={registeredPlayers}
+        emailFieldId={`inviteEmails-${gameId}`}
       />
       <Button type="submit" size="sm" disabled={isPending}>
         {isPending ? "Sending..." : "Send invites"}
