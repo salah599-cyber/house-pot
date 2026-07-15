@@ -17,6 +17,15 @@ const inviteEmailSchema = z.object({
   targetRole: z.enum(["player", "host"]).default("player"),
 });
 
+type InviteActionResult =
+  | { success: true; message: string; warning?: string }
+  | { error: string };
+
+type PlatformInviteResult =
+  | { success: true; immediate: true; userId: string }
+  | { success: true; immediate: false; token: string }
+  | { error: string };
+
 function parseInviteEmails(raw: string) {
   return [
     ...new Set(
@@ -48,7 +57,7 @@ export async function createPlatformInviteForEmail({
   invitedByUserId: string;
   inviterName: string;
   targetRole: "player" | "host";
-}) {
+}): Promise<PlatformInviteResult> {
   const normalizedEmail = email.toLowerCase();
 
   const existingUser = await db.query.users.findFirst({
@@ -58,13 +67,17 @@ export async function createPlatformInviteForEmail({
   if (existingUser) {
     if (targetRole === "host") {
       await grantHostRole(existingUser.id);
-      await sendPlatformInviteNotification({
-        email: normalizedEmail,
-        userId: existingUser.id,
-        inviterName,
-        inviteLink: getAppUrl("/host/dashboard"),
-        targetRole: "host",
-      });
+      try {
+        await sendPlatformInviteNotification({
+          email: normalizedEmail,
+          userId: existingUser.id,
+          inviterName,
+          inviteLink: getAppUrl("/host/dashboard"),
+          targetRole: "host",
+        });
+      } catch (error) {
+        console.error("Failed to send host upgrade notification", error);
+      }
       return { success: true as const, immediate: true as const, userId: existingUser.id };
     }
 
@@ -90,18 +103,22 @@ export async function createPlatformInviteForEmail({
   });
 
   const inviteLink = getAppUrl(`/invite/${token}`);
-  await sendPlatformInviteNotification({
-    email: normalizedEmail,
-    userId: null,
-    inviterName,
-    inviteLink,
-    targetRole,
-  });
+  try {
+    await sendPlatformInviteNotification({
+      email: normalizedEmail,
+      userId: null,
+      inviterName,
+      inviteLink,
+      targetRole,
+    });
+  } catch (error) {
+    console.error("Failed to send platform invite notification", error);
+  }
 
   return { success: true as const, immediate: false as const, token };
 }
 
-export async function inviteUsersByEmailAction(formData: FormData) {
+export async function inviteUsersByEmailAction(formData: FormData): Promise<InviteActionResult> {
   const admin = await requireRole("super_admin");
 
   const limited = await rateLimitSendInvites(admin.id);
@@ -126,7 +143,7 @@ export async function inviteUsersByEmailAction(formData: FormData) {
   });
 
   if ("error" in result) {
-    return result;
+    return { error: result.error };
   }
 
   await logAudit({
@@ -157,10 +174,17 @@ export async function inviteUsersByEmailAction(formData: FormData) {
 
   revalidatePath("/super-admin/invites");
   revalidatePath("/super-admin/users");
-  return { success: true };
+  return {
+    success: true,
+    message: result.immediate
+      ? `Host access granted to ${parsed.data.email}.`
+      : `${parsed.data.targetRole === "host" ? "Host" : "Player"} invite sent to ${parsed.data.email}.`,
+  };
 }
 
-export async function invitePlayersToPlatformAction(formData: FormData) {
+export async function invitePlayersToPlatformAction(
+  formData: FormData,
+): Promise<InviteActionResult> {
   const host = await requireRole("host");
 
   const limited = await rateLimitSendInvites(host.id);
@@ -208,10 +232,17 @@ export async function invitePlayersToPlatformAction(formData: FormData) {
   }
 
   if (errors.length > 0) {
-    return { success: true, warning: `Sent ${sent} invite(s). Skipped: ${errors.join(" ")}` };
+    return {
+      success: true,
+      message: `Sent ${sent} invite(s). Skipped: ${errors.join(" ")}`,
+      warning: `Sent ${sent} invite(s). Skipped: ${errors.join(" ")}`,
+    };
   }
 
-  return { success: true };
+  return {
+    success: true,
+    message: sent === 1 ? "Invite sent successfully." : `Sent ${sent} invites successfully.`,
+  };
 }
 
 export async function getPendingPlatformInvites() {

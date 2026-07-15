@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 
 import { inviteUsersByEmailAction } from "@/server/actions/invites";
 import { Button } from "@/components/ui/button";
@@ -10,15 +10,34 @@ import { Label } from "@/components/ui/label";
 
 export function InviteUserForm() {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   return (
     <form
+      ref={formRef}
       className="space-y-4"
       action={(formData) =>
         startTransition(async () => {
-          await inviteUsersByEmailAction(formData);
-          router.refresh();
+          setError(null);
+          setMessage(null);
+
+          try {
+            const result = await inviteUsersByEmailAction(formData);
+
+            if ("error" in result) {
+              setError(result.error);
+              return;
+            }
+
+            setMessage(result.message);
+            formRef.current?.reset();
+            router.refresh();
+          } catch {
+            setError("Something went wrong while sending the invite. Please try again.");
+          }
         })
       }
     >
@@ -44,8 +63,14 @@ export function InviteUserForm() {
           <option value="host">Host</option>
         </select>
       </div>
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {message ? (
+        <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-300">
+          {message}
+        </p>
+      ) : null}
       <Button type="submit" disabled={isPending}>
-        Send invite
+        {isPending ? "Sending..." : "Send invite"}
       </Button>
     </form>
   );
