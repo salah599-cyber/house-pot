@@ -117,7 +117,7 @@ export const games = pgTable("games", {
     .references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   status: gameStatusEnum("status").notNull().default("open"),
-  currency: text("currency").notNull().default("USD"),
+  currency: text("currency").notNull().default("OMR"),
   defaultBuyIn: numeric("default_buy_in", { precision: 10, scale: 2 })
     .notNull()
     .default("50"),

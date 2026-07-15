@@ -1,8 +1,9 @@
+import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { platformSettings } from "@/lib/db/schema";
 
 const DEFAULTS = {
-  default_currency: "USD",
+  default_currency: DEFAULT_CURRENCY,
   default_buy_in: "50",
   default_max_players: "8",
 } as const;

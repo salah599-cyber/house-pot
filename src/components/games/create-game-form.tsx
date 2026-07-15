@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
 import { createGameAction } from "@/server/actions/games";
-import { BUY_IN_OPTIONS, CURRENCIES, DEFAULT_MAX_PLAYERS } from "@/lib/constants";
+import { BUY_IN_OPTIONS, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_MAX_PLAYERS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -50,7 +50,7 @@ export function CreateGameForm({ defaults }: CreateGameFormProps) {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="currency">Currency</Label>
-          <Select name="currency" defaultValue={defaults?.currency ?? "USD"}>
+          <Select name="currency" defaultValue={defaults?.currency ?? DEFAULT_CURRENCY}>
             <SelectTrigger id="currency">
               <SelectValue placeholder="Select currency" />
             </SelectTrigger>

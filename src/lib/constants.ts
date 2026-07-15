@@ -1,4 +1,5 @@
 export const CURRENCIES = [
+  { code: "OMR", label: "Omani Rial (ر.ع.)" },
   { code: "USD", label: "US Dollar ($)" },
   { code: "EUR", label: "Euro (€)" },
   { code: "GBP", label: "British Pound (£)" },
@@ -8,6 +9,8 @@ export const CURRENCIES = [
 ] as const;
 
 export type CurrencyCode = (typeof CURRENCIES)[number]["code"];
+
+export const DEFAULT_CURRENCY: CurrencyCode = "OMR";
 
 export const BUY_IN_OPTIONS = [20, 50] as const;
 

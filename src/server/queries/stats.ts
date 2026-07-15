@@ -2,6 +2,7 @@
 
 import { and, desc, eq, inArray } from "drizzle-orm";
 
+import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { calculateParticipantTotals } from "@/lib/games/totals";
 import { requireDbUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -81,6 +82,6 @@ export async function getPlayerStats() {
     totalBuyInVolume,
     sessionResults: sessionResults.slice(0, 20),
     netByMonth: Object.entries(netByMonth).map(([month, net]) => ({ month, net })),
-    primaryCurrency: sessionResults[0]?.currency ?? "USD",
+    primaryCurrency: sessionResults[0]?.currency ?? DEFAULT_CURRENCY,
   };
 }
