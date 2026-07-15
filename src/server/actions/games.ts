@@ -125,16 +125,21 @@ export async function inviteEmailsToGame(
     });
 
     let platformInviteToken: string | null = null;
+    let platformInviteId: string | null = null;
 
     if (!existingUser) {
       const token = createInviteToken();
-      await db.insert(platformInvites).values({
-        email,
-        token,
-        invitedByUserId,
-        expiresAt: getInviteExpiryDate(),
-      });
+      const [platformInvite] = await db
+        .insert(platformInvites)
+        .values({
+          email,
+          token,
+          invitedByUserId,
+          expiresAt: getInviteExpiryDate(),
+        })
+        .returning();
       platformInviteToken = token;
+      platformInviteId = platformInvite.id;
     }
 
     const gameInviteToken = createInviteToken();
@@ -142,6 +147,7 @@ export async function inviteEmailsToGame(
       gameId,
       email,
       userId: existingUser?.id ?? null,
+      platformInviteId,
       token: gameInviteToken,
     });
 
@@ -173,6 +179,15 @@ export async function inviteEmailsToGame(
       hostName,
       registrationLink,
       gameInviteLink: getAppUrl(`/game-invite/${gameInviteToken}`),
+    });
+
+    await logAudit({
+      actorUserId: invitedByUserId,
+      action: "invite_sent",
+      entityType: "game_invite",
+      entityId: gameId,
+      summary: `Invited ${email} to ${gameTitle}`,
+      metadata: { email, hasPlatformInvite: Boolean(platformInviteToken) },
     });
   }
 

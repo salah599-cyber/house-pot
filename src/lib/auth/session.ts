@@ -1,5 +1,5 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
 import { isHost, isPlayer, isSuperAdmin } from "@/lib/auth/roles";
@@ -120,4 +120,10 @@ export async function grantHostRole(userId: string) {
   if (!existing) {
     await db.insert(userRoles).values({ userId, role: "host" });
   }
+}
+
+export async function revokeHostRole(userId: string) {
+  await db
+    .delete(userRoles)
+    .where(and(eq(userRoles.userId, userId), eq(userRoles.role, "host")));
 }

@@ -1,4 +1,5 @@
 import { MakeHostButton } from "@/components/admin/make-host-button";
+import { RevokeHostButton } from "@/components/admin/revoke-host-button";
 import { ToggleUserButton } from "@/components/admin/toggle-user-button";
 import { requireRole } from "@/lib/auth/session";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +45,9 @@ export default async function SuperAdminUsersPage() {
             <div className="flex flex-wrap gap-2">
               {!user.roles.some((role) => role.role === "host") ? (
                 <MakeHostButton userId={user.id} />
-              ) : null}
+              ) : (
+                <RevokeHostButton userId={user.id} />
+              )}
               <ToggleUserButton userId={user.id} disabled={user.disabled} />
             </div>
           </div>

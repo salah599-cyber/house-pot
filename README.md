@@ -93,7 +93,26 @@ npm run dev
 1. Player opens host invite link `/invite/[token]`
 2. Registers with the invited email via Clerk
 3. Onboarding validates the invite and creates their account
-4. Player confirms game seat at `/game-invite/[token]`
+4. Player confirms game seat at `/game-invite/[token]` (if invited to a game)
+
+### Super admin invites a host
+
+1. Super admin opens `/super-admin/invites`
+2. Enters email and selects **Host** as the invite role
+3. If the person is not registered, they receive a platform invite link; on sign-up they get host + player roles
+4. If already registered, host role is granted immediately
+
+### Host invites players (without a game)
+
+1. Host opens `/host/invite`
+2. Adds player emails — each receives a platform invite to register
+3. After registration, invite them to specific games from `/host/games/new` or a game detail page
+
+### Host invites players (with a game)
+
+1. Host opens `/host/games/new` or uses **Invite players** on a game page
+2. Adds player emails
+3. Unregistered players get `/invite/[token]?game=[gameToken]`; registered players get `/game-invite/[token]`
 
 ### Player privacy
 

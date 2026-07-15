@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const links = [
   { href: "/super-admin", label: "Overview", exact: true },
   { href: "/super-admin/users", label: "Users" },
+  { href: "/super-admin/invites", label: "Invites" },
   { href: "/super-admin/games", label: "Games" },
   { href: "/super-admin/audit", label: "Audit log" },
   { href: "/super-admin/settings", label: "Settings" },

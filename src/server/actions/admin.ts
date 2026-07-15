@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { logAudit } from "@/lib/audit";
-import { grantHostRole, requireRole } from "@/lib/auth/session";
+import { grantHostRole, requireRole, revokeHostRole } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { auditLogs, games, users } from "@/lib/db/schema";
 import { upsertPlatformSetting } from "@/lib/settings";
@@ -50,6 +50,41 @@ export async function promoteUserToHostAction(userId: string) {
     entityType: "user",
     entityId: userId,
     summary: "Granted host role",
+    metadata: { role: "host" },
+  });
+
+  revalidatePath("/super-admin/users");
+  return { success: true };
+}
+
+export async function revokeHostRoleAction(userId: string) {
+  const admin = await requireRole("super_admin");
+
+  if (userId === admin.id) {
+    return { error: "You cannot revoke your own host role." };
+  }
+
+  const target = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    with: { roles: true },
+  });
+
+  if (!target) {
+    return { error: "User not found." };
+  }
+
+  if (!target.roles.some((role) => role.role === "host")) {
+    return { error: "User is not a host." };
+  }
+
+  await revokeHostRole(userId);
+
+  await logAudit({
+    actorUserId: admin.id,
+    action: "role_revoked",
+    entityType: "user",
+    entityId: userId,
+    summary: "Revoked host role",
     metadata: { role: "host" },
   });
 

@@ -112,3 +112,32 @@ export async function sendGameFullNotification(input: {
     link: input.link,
   });
 }
+
+type PlatformInviteNotificationInput = {
+  email: string;
+  userId: string | null;
+  inviterName: string;
+  inviteLink: string;
+  targetRole: "player" | "host";
+};
+
+export async function sendPlatformInviteNotification(input: PlatformInviteNotificationInput) {
+  const isHostInvite = input.targetRole === "host";
+  const title = isHostInvite
+    ? "You're invited to host on House Poker"
+    : "You're invited to House Poker";
+  const body = isHostInvite
+    ? `${input.inviterName} invited you to join House Poker as a host. Register with this email to create and manage cash games.`
+    : `${input.inviterName} invited you to join House Poker. Register to confirm game seats and track your buy-ins and settlements.`;
+
+  await createNotification({
+    email: input.email,
+    userId: input.userId,
+    type: "platform_invite",
+    title,
+    body,
+    link: input.inviteLink,
+    emailSubject: title,
+    emailBody: body,
+  });
+}

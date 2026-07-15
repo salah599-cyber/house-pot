@@ -30,15 +30,23 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
         <CardHeader>
           <CardTitle>You&apos;re invited to House Poker</CardTitle>
           <CardDescription>
-            {invite.invitedBy.displayName} invited <strong>{invite.email}</strong> to join.
-            Registration is invite-only.
+            {invite.invitedBy.displayName} invited <strong>{invite.email}</strong> to join
+            {invite.targetRole === "host" ? " as a host" : ""}. Registration is invite-only.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm text-muted-foreground">
           <p>
-            After you register, you&apos;ll be able to confirm your seat for upcoming home
-            games and track your own buy-ins and settlements.
+            After you register, you&apos;ll be able to
+            {invite.targetRole === "host"
+              ? " create cash games, invite players, and manage live sessions."
+              : " confirm your seat for upcoming home games and track your own buy-ins and settlements."}
           </p>
+          {invite.targetRole === "host" ? (
+            <p className="rounded-lg border border-sky-500/30 bg-sky-500/10 p-3 text-sky-300">
+              This invite grants host access. You&apos;ll be able to create and run games after
+              registration.
+            </p>
+          ) : null}
           {gameToken ? (
             <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-emerald-300">
               A game seat is waiting for you. You&apos;ll confirm your spot right after

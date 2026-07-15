@@ -59,6 +59,7 @@ export const auditActionEnum = pgEnum("audit_action", [
   "user_disabled",
   "user_enabled",
   "role_granted",
+  "role_revoked",
   "game_created",
   "game_started",
   "game_settled",
@@ -97,6 +98,7 @@ export const platformInvites = pgTable("platform_invites", {
   invitedByUserId: uuid("invited_by_user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  targetRole: roleEnum("target_role").notNull().default("player"),
   status: inviteStatusEnum("status").notNull().default("pending"),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   acceptedAt: timestamp("accepted_at", { withTimezone: true }),

@@ -8,6 +8,7 @@ import { logAudit } from "@/lib/audit";
 import {
   getDbUserByClerkId,
   getUserRoles,
+  grantHostRole,
   grantPlayerRole,
   seedSuperAdminIfNeeded,
 } from "@/lib/auth/session";
@@ -45,6 +46,7 @@ export async function completeOnboardingAction(inviteToken?: string, gameToken?:
   }
 
   let inviteAccepted = false;
+  let inviteTargetRole: "player" | "host" | null = null;
 
   if (inviteToken) {
     const invite = await getPlatformInviteByToken(inviteToken);
@@ -55,6 +57,7 @@ export async function completeOnboardingAction(inviteToken?: string, gameToken?:
       invite.expiresAt > new Date()
     ) {
       inviteAccepted = true;
+      inviteTargetRole = invite.targetRole === "host" ? "host" : "player";
       await db
         .update(platformInvites)
         .set({ status: "accepted", acceptedAt: new Date() })
@@ -87,6 +90,9 @@ export async function completeOnboardingAction(inviteToken?: string, gameToken?:
     .returning();
 
   await grantPlayerRole(user.id);
+  if (inviteTargetRole === "host") {
+    await grantHostRole(user.id);
+  }
   await seedSuperAdminIfNeeded(email, user.id);
 
   await logAudit({

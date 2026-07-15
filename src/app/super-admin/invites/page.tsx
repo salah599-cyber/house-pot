@@ -1,0 +1,59 @@
+import { InviteUserForm } from "@/components/admin/invite-user-form";
+import { requireRole } from "@/lib/auth/session";
+import { formatDateTime } from "@/lib/dates";
+import { getAppUrl } from "@/lib/invites";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getPendingPlatformInvites } from "@/server/actions/invites";
+
+export const dynamic = "force-dynamic";
+
+export default async function SuperAdminInvitesPage() {
+  await requireRole("super_admin");
+  const pendingInvites = await getPendingPlatformInvites();
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle>Invite users</CardTitle>
+          <CardDescription>
+            Send platform invites by email. Choose player for game registration, or host to
+            let them create and manage games after sign-up.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <InviteUserForm />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Pending invites</CardTitle>
+          <CardDescription>Outstanding platform invites that have not expired.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {pendingInvites.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No pending invites.</p>
+          ) : (
+            pendingInvites.map((invite) => (
+              <div key={invite.id} className="rounded-lg border border-border p-4 text-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-medium">{invite.email}</p>
+                  <Badge variant="outline">{invite.targetRole}</Badge>
+                </div>
+                <p className="mt-1 text-muted-foreground">
+                  Invited by {invite.invitedBy.displayName} · expires{" "}
+                  {formatDateTime(invite.expiresAt)}
+                </p>
+                <p className="mt-2 break-all text-xs text-muted-foreground">
+                  {getAppUrl(`/invite/${invite.token}`)}
+                </p>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

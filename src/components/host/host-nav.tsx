@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/host/dashboard", label: "My games", exact: true },
+  { href: "/host/invite", label: "Invite players" },
   { href: "/host/games/new", label: "New game" },
 ];
 
