@@ -88,6 +88,15 @@ export function InviteUserForm() {
         />
       </div>
       <div className="space-y-2">
+        <Label htmlFor="whatsappPhone">WhatsApp number (optional)</Label>
+        <Input
+          id="whatsappPhone"
+          name="whatsappPhone"
+          type="tel"
+          placeholder="+968 9123 4567"
+        />
+      </div>
+      <div className="space-y-2">
         <Label htmlFor="targetRole">Invite as</Label>
         <select
           id="targetRole"

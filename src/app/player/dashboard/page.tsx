@@ -24,6 +24,9 @@ export default async function PlayerDashboardPage() {
         <Button asChild variant="outline" className="min-h-11 w-full sm:w-auto">
           <Link href="/player/stats">View stats</Link>
         </Button>
+        <Button asChild variant="outline" className="min-h-11 w-full sm:w-auto">
+          <Link href="/player/settings">Settings</Link>
+        </Button>
       </div>
 
       <section className="grid gap-4">

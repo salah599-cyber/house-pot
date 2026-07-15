@@ -33,6 +33,9 @@ export async function AppHeader() {
                 <Button asChild variant="ghost" size="sm">
                   <Link href="/player/stats">Stats</Link>
                 </Button>
+                <Button asChild variant="ghost" size="sm">
+                  <Link href="/player/settings">Settings</Link>
+                </Button>
                 {userIsHost ? (
                   <Button asChild variant="ghost" size="sm">
                     <Link href="/host">Host</Link>

@@ -13,6 +13,11 @@ import { ensureClerkInvitation } from "@/lib/clerk-invitations";
 import { createInviteToken, getAppUrl, getInviteExpiryDate } from "@/lib/invites";
 import { rateLimitSendInvites } from "@/lib/rate-limit";
 import { sendPlatformInviteNotification } from "@/server/notifications";
+import {
+  normalizeWhatsAppPhone,
+  parseInviteWhatsappPhones,
+  whatsappPhoneAtIndex,
+} from "@/lib/whatsapp";
 
 const inviteEmailSchema = z.object({
   email: z.string().email(),
@@ -67,13 +72,22 @@ export async function createPlatformInviteForEmail({
   invitedByUserId,
   inviterName,
   targetRole,
+  whatsappPhone: rawWhatsappPhone,
 }: {
   email: string;
   invitedByUserId: string;
   inviterName: string;
   targetRole: "player" | "host";
+  whatsappPhone?: string | null;
 }): Promise<PlatformInviteResult> {
   const normalizedEmail = email.toLowerCase();
+  const whatsappPhone = rawWhatsappPhone
+    ? normalizeWhatsAppPhone(rawWhatsappPhone)
+    : null;
+
+  if (rawWhatsappPhone && !whatsappPhone) {
+    return { error: `Invalid WhatsApp number for ${normalizedEmail}.` };
+  }
 
   const existingUser = await db.query.users.findFirst({
     where: eq(users.email, normalizedEmail),
@@ -116,6 +130,7 @@ export async function createPlatformInviteForEmail({
     token,
     invitedByUserId,
     targetRole,
+    whatsappPhone,
     expiresAt: getInviteExpiryDate(),
   });
 
@@ -184,6 +199,7 @@ export async function inviteUsersByEmailAction(formData: FormData): Promise<Invi
     invitedByUserId: admin.id,
     inviterName: admin.displayName,
     targetRole: parsed.data.targetRole,
+    whatsappPhone: String(formData.get("whatsappPhone") ?? "").trim() || null,
   });
 
   if ("error" in result) {
@@ -252,6 +268,9 @@ export async function invitePlayersToPlatformAction(
   }
 
   const emails = parseInviteEmails(String(formData.get("inviteEmails") ?? ""));
+  const whatsappPhones = parseInviteWhatsappPhones(
+    String(formData.get("inviteWhatsappPhones") ?? ""),
+  );
   if (emails.length === 0) {
     return { error: "Add at least one email address." };
   }
@@ -261,7 +280,7 @@ export async function invitePlayersToPlatformAction(
   let emailWarnings = 0;
   let emailsDelivered = 0;
 
-  for (const email of emails) {
+  for (const [index, email] of emails.entries()) {
     if (email === host.email.toLowerCase()) continue;
 
     const result = await createPlatformInviteForEmail({
@@ -269,6 +288,7 @@ export async function invitePlayersToPlatformAction(
       invitedByUserId: host.id,
       inviterName: host.displayName,
       targetRole: "player",
+      whatsappPhone: whatsappPhoneAtIndex(whatsappPhones, index),
     });
 
     if ("error" in result && result.error) {

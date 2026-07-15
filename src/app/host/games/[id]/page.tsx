@@ -8,12 +8,18 @@ import { RemoveGameInviteButton } from "@/components/games/remove-game-invite-bu
 import { RemoveGameParticipantButton } from "@/components/games/remove-game-participant-button";
 import { StartGameButton } from "@/components/games/live-session-controls";
 import { MaxPlayersControl } from "@/components/games/max-players-control";
+import { WhatsAppShareButton } from "@/components/shared/whatsapp-share-button";
 import { DesktopTable, MobileStack, MobileStackItem } from "@/components/ui/mobile-stack";
 import { getUserRoles, requireRole } from "@/lib/auth/session";
 import { getGameForHost } from "@/lib/auth/permissions";
 import { formatDateTime } from "@/lib/dates";
 import { isGameInviteActive } from "@/lib/game-invites";
+import { getAppUrl } from "@/lib/invites";
 import { getInvitableRegisteredPlayers } from "@/lib/queries/players";
+import {
+  gameInviteRegisteredMessage,
+  gameInviteUnregisteredMessage,
+} from "@/lib/whatsapp-messages";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -154,15 +160,39 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
             {canRemoveParticipants && activeGameInvites.length > 0 ? (
               <div className="space-y-2 border-t border-border pt-4">
                 <p className="text-sm font-medium">Pending email invites</p>
-                {activeGameInvites.map((invite) => (
+                {activeGameInvites.map((invite) => {
+                  const gameInviteLink = getAppUrl(`/game-invite/${invite.token}`);
+                  const registrationLink = invite.platformInvite
+                    ? getAppUrl(`/invite/${invite.platformInvite.token}?game=${invite.token}`)
+                    : gameInviteLink;
+                  const whatsappMessage = invite.userId
+                    ? gameInviteRegisteredMessage({
+                        hostName: user.displayName,
+                        gameTitle: game.title,
+                        gameInviteLink,
+                      })
+                    : gameInviteUnregisteredMessage({
+                        hostName: user.displayName,
+                        gameTitle: game.title,
+                        registrationLink,
+                      });
+
+                  return (
                   <div
                     key={invite.id}
                     className="flex flex-wrap items-center justify-between gap-2 text-sm"
                   >
                     <span>{invite.email}</span>
-                    <RemoveGameInviteButton gameId={game.id} inviteId={invite.id} />
+                    <div className="flex flex-wrap gap-2">
+                      <WhatsAppShareButton
+                        phone={invite.whatsappPhone}
+                        message={whatsappMessage}
+                      />
+                      <RemoveGameInviteButton gameId={game.id} inviteId={invite.id} />
+                    </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ) : null}
           </CardContent>

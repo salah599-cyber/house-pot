@@ -55,6 +55,7 @@ export async function completeOnboardingAction(
 
   let inviteAccepted = false;
   let inviteTargetRole: "player" | "host" | null = null;
+  let inviteWhatsappPhone: string | null = null;
 
   const inviteFromCookie = await getPlatformInviteCookie();
   const effectiveInviteToken = inviteToken ?? inviteFromCookie ?? undefined;
@@ -70,11 +71,19 @@ export async function completeOnboardingAction(
 
       inviteAccepted = true;
       inviteTargetRole = invite.targetRole === "host" ? "host" : "player";
+      inviteWhatsappPhone = invite.whatsappPhone ?? null;
       await db
         .update(platformInvites)
         .set({ status: "accepted", acceptedAt: new Date() })
         .where(eq(platformInvites.id, invite.id));
     }
+  }
+
+  if (!inviteWhatsappPhone) {
+    const pendingGameInvite = await db.query.gameInvites.findFirst({
+      where: and(eq(gameInvites.email, email), isNull(gameInvites.userId)),
+    });
+    inviteWhatsappPhone = pendingGameInvite?.whatsappPhone ?? null;
   }
 
   const superAdminEmail = process.env.SUPER_ADMIN_EMAIL?.toLowerCase();
@@ -109,6 +118,7 @@ export async function completeOnboardingAction(
       clerkId: userId,
       email,
       displayName,
+      whatsappPhone: inviteWhatsappPhone,
     })
     .returning();
 

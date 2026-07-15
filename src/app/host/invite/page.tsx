@@ -2,17 +2,19 @@ import { CopyInviteLinkButton } from "@/components/admin/copy-invite-link-button
 import { DeletePlatformInviteButton } from "@/components/admin/delete-platform-invite-button";
 import { InvitePlayersToPlatformForm } from "@/components/host/invite-players-to-platform-form";
 import { HostResendInviteEmailButton } from "@/components/host/host-resend-invite-email-button";
+import { WhatsAppShareButton } from "@/components/shared/whatsapp-share-button";
 import { requireRole } from "@/lib/auth/session";
 import { formatDateTime } from "@/lib/dates";
 import { isInviteEmailDeliveryConfigured } from "@/lib/email";
 import { getAppUrl } from "@/lib/invites";
+import { platformInviteMessage } from "@/lib/whatsapp-messages";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPendingPlatformInvitesForHost } from "@/server/actions/invites";
 
 export const dynamic = "force-dynamic";
 
 export default async function HostInvitePage() {
-  await requireRole("host");
+  const host = await requireRole("host");
   const pendingInvites = await getPendingPlatformInvitesForHost();
   const emailConfigured = isInviteEmailDeliveryConfigured();
 
@@ -66,6 +68,14 @@ export default async function HostInvitePage() {
                   <p className="mt-2 break-all text-xs text-muted-foreground">{inviteLink}</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <CopyInviteLinkButton inviteLink={inviteLink} />
+                    <WhatsAppShareButton
+                      phone={invite.whatsappPhone}
+                      message={platformInviteMessage({
+                        inviterName: host.displayName,
+                        email: invite.email,
+                        inviteLink,
+                      })}
+                    />
                     <HostResendInviteEmailButton inviteId={invite.id} inviteLink={inviteLink} />
                     <DeletePlatformInviteButton inviteId={invite.id} />
                   </div>

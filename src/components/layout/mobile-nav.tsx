@@ -23,6 +23,7 @@ type MobileNavProps = {
 const baseLinks = [
   { href: "/player/dashboard", label: "Dashboard" },
   { href: "/player/stats", label: "Stats" },
+  { href: "/player/settings", label: "Settings" },
 ] as const;
 
 export function MobileNav({ isHost, isSuperAdmin }: MobileNavProps) {

@@ -20,7 +20,9 @@ export async function getGameForHost(gameId: string, userId: string, roles: Role
     participants: {
       with: { user: true },
     },
-    invites: true,
+    invites: {
+      with: { platformInvite: true },
+    },
     transactions: true,
     settlementLines: {
       with: {

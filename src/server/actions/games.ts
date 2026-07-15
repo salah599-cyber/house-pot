@@ -30,6 +30,11 @@ import { createJoinCode } from "@/lib/join-code";
 import { logAudit } from "@/lib/audit";
 import { rateLimitSendInvites } from "@/lib/rate-limit";
 import { sendGameInviteNotifications } from "@/server/notifications";
+import {
+  normalizeWhatsAppPhone,
+  parseInviteWhatsappPhones,
+  whatsappPhoneAtIndex,
+} from "@/lib/whatsapp";
 
 const createGameSchema = z.object({
   title: z.string().min(3).max(80),
@@ -60,6 +65,9 @@ function parseInviteTargets(formData: FormData, inviteEmailsRaw?: string) {
   return {
     playerIds: parseInvitePlayerIds(formData),
     emails: parseInviteEmails(inviteEmailsRaw ?? String(formData.get("inviteEmails") ?? "")),
+    whatsappPhones: parseInviteWhatsappPhones(
+      String(formData.get("inviteWhatsappPhones") ?? ""),
+    ),
   };
 }
 
@@ -81,7 +89,7 @@ export async function createGameAction(formData: FormData) {
   }
 
   const data = parsed.data;
-  const { playerIds, emails } = parseInviteTargets(formData, data.inviteEmails);
+  const { playerIds, emails, whatsappPhones } = parseInviteTargets(formData, data.inviteEmails);
 
   const [game] = await db
     .insert(games)
@@ -118,7 +126,7 @@ export async function createGameAction(formData: FormData) {
   if (playerIds.length > 0 || emails.length > 0) {
     const inviteResult = await invitePlayersToGame(
       game.id,
-      { playerIds, emails },
+      { playerIds, emails, whatsappPhones },
       user.id,
       user.displayName,
       game.title,
@@ -150,7 +158,7 @@ export async function createGameAction(formData: FormData) {
 
 export async function invitePlayersToGame(
   gameId: string,
-  targets: { playerIds: string[]; emails: string[] },
+  targets: { playerIds: string[]; emails: string[]; whatsappPhones?: string[] },
   invitedByUserId: string,
   hostName: string,
   gameTitle: string,
@@ -170,6 +178,7 @@ export async function invitePlayersToGame(
 
   const uniquePlayerIds = [...new Set(targets.playerIds)];
   const uniqueEmails = [...new Set(targets.emails.map((email) => email.toLowerCase()))];
+  const whatsappPhones = targets.whatsappPhones ?? [];
   let sent = 0;
   const warnings: string[] = [];
   const invitedEmails = new Set<string>();
@@ -203,8 +212,14 @@ export async function invitePlayersToGame(
     }
   }
 
-  for (const email of uniqueEmails) {
+  for (const [index, email] of uniqueEmails.entries()) {
     if (email === user.email.toLowerCase() || invitedEmails.has(email)) {
+      continue;
+    }
+
+    const whatsappPhone = whatsappPhoneAtIndex(whatsappPhones, index);
+    if (whatsappPhones[index] && !whatsappPhone) {
+      warnings.push(`${email}: invalid WhatsApp number.`);
       continue;
     }
 
@@ -221,6 +236,7 @@ export async function invitePlayersToGame(
         hostName,
         gameTitle,
         currentUserEmail: user.email.toLowerCase(),
+        whatsappPhone,
       });
 
       if (warning === null) {
@@ -240,6 +256,7 @@ export async function invitePlayersToGame(
       hostName,
       gameTitle,
       currentUserEmail: user.email.toLowerCase(),
+      whatsappPhone,
     });
 
     if (warning === null) {
@@ -275,6 +292,7 @@ async function processGameInvite({
   hostName,
   gameTitle,
   currentUserEmail,
+  whatsappPhone,
 }: {
   gameId: string;
   email: string;
@@ -283,6 +301,7 @@ async function processGameInvite({
   hostName: string;
   gameTitle: string;
   currentUserEmail: string;
+  whatsappPhone?: string | null;
 }) {
   if (email === currentUserEmail) {
     return "";
@@ -311,6 +330,7 @@ async function processGameInvite({
         email,
         token,
         invitedByUserId,
+        whatsappPhone: whatsappPhone ?? null,
         expiresAt: getInviteExpiryDate(),
       })
       .returning();
@@ -319,12 +339,22 @@ async function processGameInvite({
   }
 
   const gameInviteToken = createInviteToken();
+  let resolvedWhatsappPhone = whatsappPhone ?? null;
+  if (!resolvedWhatsappPhone && existingUser) {
+    const userRecord = await db.query.users.findFirst({
+      where: eq(users.id, existingUser.id),
+      columns: { whatsappPhone: true },
+    });
+    resolvedWhatsappPhone = userRecord?.whatsappPhone ?? null;
+  }
+
   await db.insert(gameInvites).values({
     gameId,
     email,
     userId: existingUser?.id ?? null,
     platformInviteId,
     token: gameInviteToken,
+    whatsappPhone: resolvedWhatsappPhone,
     expiresAt: getInviteExpiryDate(),
   });
 
@@ -413,7 +443,7 @@ export async function inviteEmailsToGame(
 }
 
 export async function invitePlayersAction(gameId: string, formData: FormData) {
-  const { playerIds, emails } = parseInviteTargets(formData);
+  const { playerIds, emails, whatsappPhones } = parseInviteTargets(formData);
 
   if (playerIds.length === 0 && emails.length === 0) {
     return { error: "Select registered players or add unregistered emails to invite." };
@@ -430,7 +460,7 @@ export async function invitePlayersAction(gameId: string, formData: FormData) {
 
   return invitePlayersToGame(
     gameId,
-    { playerIds, emails },
+    { playerIds, emails, whatsappPhones },
     user.id,
     user.displayName,
     game.title,

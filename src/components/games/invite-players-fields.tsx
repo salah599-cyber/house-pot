@@ -62,6 +62,19 @@ export function InvitePlayersFields({
           registration invite for this game.
         </p>
       </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="inviteWhatsappPhones">WhatsApp numbers (optional)</Label>
+        <Textarea
+          id="inviteWhatsappPhones"
+          name="inviteWhatsappPhones"
+          placeholder="+968 9123 4567"
+          rows={3}
+        />
+        <p className="text-xs text-muted-foreground">
+          One number per email line, in the same order. Used when you share invites on WhatsApp.
+        </p>
+      </div>
     </div>
   );
 }

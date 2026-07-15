@@ -75,6 +75,7 @@ export const users = pgTable("users", {
   clerkId: text("clerk_id").notNull().unique(),
   email: text("email").notNull().unique(),
   displayName: text("display_name").notNull(),
+  whatsappPhone: text("whatsapp_phone"),
   disabled: boolean("disabled").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -100,6 +101,7 @@ export const platformInvites = pgTable("platform_invites", {
     .references(() => users.id, { onDelete: "cascade" }),
   targetRole: roleEnum("target_role").notNull().default("player"),
   status: inviteStatusEnum("status").notNull().default("pending"),
+  whatsappPhone: text("whatsapp_phone"),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   acceptedAt: timestamp("accepted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -160,6 +162,7 @@ export const gameInvites = pgTable("game_invites", {
   }),
   token: text("token").notNull().unique(),
   status: gameInviteStatusEnum("status").notNull().default("pending"),
+  whatsappPhone: text("whatsapp_phone"),
   sentAt: timestamp("sent_at", { withTimezone: true }).defaultNow().notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -168,6 +171,10 @@ export const gameInvites = pgTable("game_invites", {
 export const gameInvitesRelations = relations(gameInvites, ({ one }) => ({
   game: one(games, { fields: [gameInvites.gameId], references: [games.id] }),
   user: one(users, { fields: [gameInvites.userId], references: [users.id] }),
+  platformInvite: one(platformInvites, {
+    fields: [gameInvites.platformInviteId],
+    references: [platformInvites.id],
+  }),
 }));
 
 export const transactions = pgTable("transactions", {

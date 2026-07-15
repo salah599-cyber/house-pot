@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { LiveGameActions } from "@/components/games/live-game-actions";
 import { LiveSeatMap } from "@/components/games/live-seat-map";
 import { LiveSessionPoller } from "@/components/games/live-session-controls";
+import { WhatsAppShareButton } from "@/components/shared/whatsapp-share-button";
 import { DesktopTable, MobileStack, MobileStackItem } from "@/components/ui/mobile-stack";
 import { getUserRoles, requireRole } from "@/lib/auth/session";
 import { getGameForHost } from "@/lib/auth/permissions";
@@ -12,6 +13,8 @@ import {
   participantDisplayName,
 } from "@/lib/games/totals";
 import { formatDateTime, formatMoney } from "@/lib/dates";
+import { getAppUrl } from "@/lib/invites";
+import { settlementTransferMessage } from "@/lib/whatsapp-messages";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -185,22 +188,37 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
           </CardHeader>
           <CardContent>
             <MobileStack>
-              {game.settlementLines.map((line) => (
+              {game.settlementLines.map((line) => {
+                const whatsappMessage = settlementTransferMessage({
+                  gameTitle: game.title,
+                  payeeName: participantDisplayName(line.toParticipant),
+                  formattedAmount: formatMoney(line.amount, game.currency),
+                  playerGameLink: getAppUrl(`/player/games/${game.id}`),
+                });
+
+                return (
                 <MobileStackItem key={line.id}>
                   <p className="font-medium">
                     {participantDisplayName(line.fromParticipant)} →{" "}
                     {participantDisplayName(line.toParticipant)}
                   </p>
-                  <div className="mt-2 flex items-center justify-between gap-2">
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                     <span>{formatMoney(line.amount, game.currency)}</span>
-                    <Badge variant="outline">
-                      {line.payerMarkedSettled && line.payeeMarkedSettled
-                        ? "Settled"
-                        : "Pending"}
-                    </Badge>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline">
+                        {line.payerMarkedSettled && line.payeeMarkedSettled
+                          ? "Settled"
+                          : "Pending"}
+                      </Badge>
+                      <WhatsAppShareButton
+                        phone={line.fromParticipant.user?.whatsappPhone}
+                        message={whatsappMessage}
+                      />
+                    </div>
                   </div>
                 </MobileStackItem>
-              ))}
+                );
+              })}
             </MobileStack>
             <DesktopTable>
               <Table>
@@ -213,18 +231,35 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {game.settlementLines.map((line) => (
+                  {game.settlementLines.map((line) => {
+                    const whatsappMessage = settlementTransferMessage({
+                      gameTitle: game.title,
+                      payeeName: participantDisplayName(line.toParticipant),
+                      formattedAmount: formatMoney(line.amount, game.currency),
+                      playerGameLink: getAppUrl(`/player/games/${game.id}`),
+                    });
+
+                    return (
                     <TableRow key={line.id}>
                       <TableCell>{participantDisplayName(line.fromParticipant)}</TableCell>
                       <TableCell>{participantDisplayName(line.toParticipant)}</TableCell>
                       <TableCell>{formatMoney(line.amount, game.currency)}</TableCell>
                       <TableCell>
-                        {line.payerMarkedSettled && line.payeeMarkedSettled
-                          ? "Settled"
-                          : "Pending"}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span>
+                            {line.payerMarkedSettled && line.payeeMarkedSettled
+                              ? "Settled"
+                              : "Pending"}
+                          </span>
+                          <WhatsAppShareButton
+                            phone={line.fromParticipant.user?.whatsappPhone}
+                            message={whatsappMessage}
+                          />
+                        </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </DesktopTable>

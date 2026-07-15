@@ -61,6 +61,11 @@ export function InvitePlayersToPlatformForm() {
         placeholder="Add emails separated by commas or new lines"
         rows={4}
       />
+      <Textarea
+        name="inviteWhatsappPhones"
+        placeholder="Optional WhatsApp numbers in the same order as emails"
+        rows={3}
+      />
       <Button type="submit" disabled={isPending}>
         {isPending ? "Sending..." : "Send platform invites"}
       </Button>
