@@ -333,7 +333,7 @@ async function processGameInvite({
       eq(gameParticipants.gameId, gameId),
       existingUser
         ? eq(gameParticipants.userId, existingUser.id)
-        : eq(gameParticipants.guestName, email),
+        : eq(gameParticipants.invitedEmail, email),
     ),
   });
 
@@ -341,6 +341,7 @@ async function processGameInvite({
     await db.insert(gameParticipants).values({
       gameId,
       userId: existingUser?.id ?? null,
+      invitedEmail: email,
       status: "invited",
     });
   }

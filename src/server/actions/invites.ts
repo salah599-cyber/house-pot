@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { logAudit } from "@/lib/audit";
-import { grantHostRole, requireDbUser, requireRole } from "@/lib/auth/session";
+import { grantHostRole, getUserRoles, requireDbUser, requireRole } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { platformInvites, users } from "@/lib/db/schema";
 import { describeEmailDeliveryIssue, shouldUseResendForEmail } from "@/lib/email";
@@ -460,4 +460,46 @@ export async function getPendingPlatformInvites() {
     orderBy: [desc(platformInvites.createdAt)],
     limit: 50,
   });
+}
+
+export async function revokePlatformInviteAction(inviteId: string) {
+  const user = await requireDbUser();
+  const roles = getUserRoles(user);
+  const isAdmin = roles.includes("super_admin");
+  const isHost = roles.includes("host");
+
+  if (!isAdmin && !isHost) {
+    return { error: "Unauthorized." };
+  }
+
+  const invite = await db.query.platformInvites.findFirst({
+    where: and(
+      eq(platformInvites.id, inviteId),
+      eq(platformInvites.status, "pending"),
+      gt(platformInvites.expiresAt, new Date()),
+      ...(isAdmin ? [] : [eq(platformInvites.invitedByUserId, user.id)]),
+    ),
+  });
+
+  if (!invite) {
+    return { error: "Invite not found or already closed." };
+  }
+
+  await db
+    .update(platformInvites)
+    .set({ status: "declined" })
+    .where(eq(platformInvites.id, invite.id));
+
+  await logAudit({
+    actorUserId: user.id,
+    action: "invite_sent",
+    entityType: "platform_invite",
+    entityId: invite.id,
+    summary: `Revoked platform invite for ${invite.email}`,
+    metadata: { email: invite.email, revoked: true },
+  });
+
+  revalidatePath("/host/invite");
+  revalidatePath("/super-admin/invites");
+  return { success: true };
 }

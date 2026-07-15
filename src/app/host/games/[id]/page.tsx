@@ -4,12 +4,15 @@ import { notFound } from "next/navigation";
 import { QrJoinCard } from "@/components/games/qr-join-card";
 import { AddGuestForm } from "@/components/games/add-guest-form";
 import { InvitePlayersForm } from "@/components/games/invite-players-form";
+import { RemoveGameInviteButton } from "@/components/games/remove-game-invite-button";
+import { RemoveGameParticipantButton } from "@/components/games/remove-game-participant-button";
 import { StartGameButton } from "@/components/games/live-session-controls";
 import { MaxPlayersControl } from "@/components/games/max-players-control";
 import { DesktopTable, MobileStack, MobileStackItem } from "@/components/ui/mobile-stack";
 import { getUserRoles, requireRole } from "@/lib/auth/session";
 import { getGameForHost } from "@/lib/auth/permissions";
 import { formatDateTime } from "@/lib/dates";
+import { isGameInviteActive } from "@/lib/game-invites";
 import { getInvitableRegisteredPlayers } from "@/lib/queries/players";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,6 +48,10 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
   const confirmedCount = game.participants.filter((participant) =>
     ["host", "confirmed", "guest"].includes(participant.status),
   ).length;
+
+  const removableParticipantStatuses = new Set(["invited", "declined", "waitlist", "guest"]);
+  const canRemoveParticipants = game.status === "open";
+  const activeGameInvites = game.invites.filter((invite) => isGameInviteActive(invite));
 
   return (
     <div className="flex w-full flex-col gap-6">
@@ -92,7 +99,17 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
                     <p className="font-medium">
                       {participant.user?.displayName ?? participant.guestName ?? "Invited"}
                     </p>
-                    <Badge variant="outline">{participant.status}</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">{participant.status}</Badge>
+                      {canRemoveParticipants &&
+                      participant.status !== "host" &&
+                      removableParticipantStatuses.has(participant.status) ? (
+                        <RemoveGameParticipantButton
+                          gameId={game.id}
+                          participantId={participant.id}
+                        />
+                      ) : null}
+                    </div>
                   </div>
                   <p className="mt-1 text-muted-foreground">
                     Seat {participant.seatNumber ?? "—"}
@@ -117,13 +134,37 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
                       {participant.user?.displayName ?? participant.guestName ?? "Invited"}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{participant.status}</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{participant.status}</Badge>
+                        {canRemoveParticipants &&
+                        participant.status !== "host" &&
+                        removableParticipantStatuses.has(participant.status) ? (
+                          <RemoveGameParticipantButton
+                            gameId={game.id}
+                            participantId={participant.id}
+                          />
+                        ) : null}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
             </DesktopTable>
+            {canRemoveParticipants && activeGameInvites.length > 0 ? (
+              <div className="space-y-2 border-t border-border pt-4">
+                <p className="text-sm font-medium">Pending email invites</p>
+                {activeGameInvites.map((invite) => (
+                  <div
+                    key={invite.id}
+                    className="flex flex-wrap items-center justify-between gap-2 text-sm"
+                  >
+                    <span>{invite.email}</span>
+                    <RemoveGameInviteButton gameId={game.id} inviteId={invite.id} />
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 

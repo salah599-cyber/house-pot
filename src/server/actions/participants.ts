@@ -8,7 +8,7 @@ import { assertGameHost } from "@/lib/auth/permissions";
 import { getUserRoles, grantPlayerRole, requireDbUser } from "@/lib/auth/session";
 import { isGameInviteActive, isGameInviteExpired } from "@/lib/game-invites";
 import { db } from "@/lib/db";
-import { gameInvites, gameParticipants, games } from "@/lib/db/schema";
+import { gameInvites, gameParticipants, games, transactions } from "@/lib/db/schema";
 
 const guestSchema = z.object({
   guestName: z.string().min(2).max(60),
@@ -179,6 +179,129 @@ export async function declineGameInviteAction(token: string) {
       ),
     );
 
+  revalidatePath("/player/dashboard");
+  revalidatePath(`/host/games/${invite.gameId}`);
+  return { success: true };
+}
+
+const removableParticipantStatuses = ["invited", "declined", "waitlist", "guest"] as const;
+
+export async function removeGameParticipantAction(gameId: string, participantId: string) {
+  const user = await requireDbUser();
+  const roles = getUserRoles(user);
+  const allowed = await assertGameHost(gameId, user.id, roles);
+
+  if (!allowed) {
+    return { error: "Unauthorized." };
+  }
+
+  const game = await db.query.games.findFirst({
+    where: eq(games.id, gameId),
+  });
+
+  if (!game) {
+    return { error: "Game not found." };
+  }
+
+  if (game.status !== "open") {
+    return { error: "Players can only be removed before the game starts." };
+  }
+
+  const participant = await db.query.gameParticipants.findFirst({
+    where: and(eq(gameParticipants.id, participantId), eq(gameParticipants.gameId, gameId)),
+    with: { user: true },
+  });
+
+  if (!participant) {
+    return { error: "Player not found on this game." };
+  }
+
+  if (participant.status === "host") {
+    return { error: "The host cannot be removed." };
+  }
+
+  if (!(removableParticipantStatuses as readonly string[]).includes(participant.status)) {
+    return { error: "Confirmed players cannot be removed from the table." };
+  }
+
+  const hasTransactions = await db.query.transactions.findFirst({
+    where: eq(transactions.participantId, participant.id),
+  });
+
+  if (hasTransactions) {
+    return { error: "This player has buy-ins recorded and cannot be removed." };
+  }
+
+  const inviteEmail =
+    participant.invitedEmail?.toLowerCase() ??
+    participant.user?.email.toLowerCase() ??
+    null;
+
+  await db.delete(gameParticipants).where(eq(gameParticipants.id, participant.id));
+
+  if (inviteEmail || participant.userId) {
+    await db
+      .update(gameInvites)
+      .set({ status: "declined" })
+      .where(
+        and(
+          eq(gameInvites.gameId, gameId),
+          inArray(gameInvites.status, ["pending", "registered", "confirmed"]),
+          participant.userId
+            ? eq(gameInvites.userId, participant.userId)
+            : eq(gameInvites.email, inviteEmail ?? ""),
+        ),
+      );
+  }
+
+  revalidatePath(`/host/games/${gameId}`);
+  return { success: true };
+}
+
+export async function revokeGameInviteAction(gameId: string, inviteId: string) {
+  const user = await requireDbUser();
+  const roles = getUserRoles(user);
+  const allowed = await assertGameHost(gameId, user.id, roles);
+
+  if (!allowed) {
+    return { error: "Unauthorized." };
+  }
+
+  const game = await db.query.games.findFirst({
+    where: eq(games.id, gameId),
+  });
+
+  if (!game) {
+    return { error: "Game not found." };
+  }
+
+  if (game.status !== "open") {
+    return { error: "Invites can only be removed before the game starts." };
+  }
+
+  const invite = await db.query.gameInvites.findFirst({
+    where: and(eq(gameInvites.id, inviteId), eq(gameInvites.gameId, gameId)),
+  });
+
+  if (!invite || !isGameInviteActive(invite)) {
+    return { error: "Invite not found or already closed." };
+  }
+
+  await db.update(gameInvites).set({ status: "declined" }).where(eq(gameInvites.id, invite.id));
+
+  await db
+    .delete(gameParticipants)
+    .where(
+      and(
+        eq(gameParticipants.gameId, gameId),
+        invite.userId
+          ? eq(gameParticipants.userId, invite.userId)
+          : eq(gameParticipants.invitedEmail, invite.email),
+        inArray(gameParticipants.status, [...removableParticipantStatuses]),
+      ),
+    );
+
+  revalidatePath(`/host/games/${gameId}`);
   revalidatePath("/player/dashboard");
   return { success: true };
 }

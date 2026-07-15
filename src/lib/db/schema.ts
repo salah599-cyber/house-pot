@@ -140,6 +140,7 @@ export const gameParticipants = pgTable("game_participants", {
     .references(() => games.id, { onDelete: "cascade" }),
   userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
   guestName: text("guest_name"),
+  invitedEmail: text("invited_email"),
   status: participantStatusEnum("status").notNull().default("invited"),
   seatNumber: integer("seat_number"),
   settlementMarked: boolean("settlement_marked").notNull().default(false),

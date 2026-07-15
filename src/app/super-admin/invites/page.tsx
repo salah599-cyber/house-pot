@@ -1,4 +1,5 @@
 import { CopyInviteLinkButton } from "@/components/admin/copy-invite-link-button";
+import { DeletePlatformInviteButton } from "@/components/admin/delete-platform-invite-button";
 import { InviteUserForm } from "@/components/admin/invite-user-form";
 import { ResendInviteEmailButton } from "@/components/admin/resend-invite-email-button";
 import { requireRole } from "@/lib/auth/session";
@@ -71,6 +72,7 @@ export default async function SuperAdminInvitesPage() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   <CopyInviteLinkButton inviteLink={inviteLink} />
                   <ResendInviteEmailButton inviteId={invite.id} inviteLink={inviteLink} />
+                  <DeletePlatformInviteButton inviteId={invite.id} />
                 </div>
               </div>
             );

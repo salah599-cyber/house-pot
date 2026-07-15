@@ -1,4 +1,5 @@
 import { CopyInviteLinkButton } from "@/components/admin/copy-invite-link-button";
+import { DeletePlatformInviteButton } from "@/components/admin/delete-platform-invite-button";
 import { InvitePlayersToPlatformForm } from "@/components/host/invite-players-to-platform-form";
 import { HostResendInviteEmailButton } from "@/components/host/host-resend-invite-email-button";
 import { requireRole } from "@/lib/auth/session";
@@ -66,6 +67,7 @@ export default async function HostInvitePage() {
                   <div className="mt-3 flex flex-wrap gap-2">
                     <CopyInviteLinkButton inviteLink={inviteLink} />
                     <HostResendInviteEmailButton inviteId={invite.id} inviteLink={inviteLink} />
+                    <DeletePlatformInviteButton inviteId={invite.id} />
                   </div>
                 </div>
               );
