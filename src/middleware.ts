@@ -2,6 +2,11 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import {
+  getPlatformInviteCookieOptions,
+  parsePlatformInviteTokenFromPath,
+  PLATFORM_INVITE_COOKIE,
+} from "@/lib/auth/invite-cookie";
+import {
   getClientIp,
   rateLimitInvitePage,
   rateLimitJoin,
@@ -40,6 +45,13 @@ export default clerkMiddleware(async (auth, request) => {
     const limited = await rateLimitInvitePage(ip);
     if (!limited.success) {
       return NextResponse.json({ error: limited.error }, { status: 429 });
+    }
+
+    const inviteToken = parsePlatformInviteTokenFromPath(request.nextUrl.pathname);
+    if (inviteToken) {
+      const response = NextResponse.next();
+      response.cookies.set(PLATFORM_INVITE_COOKIE, inviteToken, getPlatformInviteCookieOptions());
+      return response;
     }
   }
 

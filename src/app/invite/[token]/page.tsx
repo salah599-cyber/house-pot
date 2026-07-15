@@ -2,8 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SignUp } from "@clerk/nextjs";
 
-import { setPlatformInviteCookie } from "@/lib/auth/invite-cookie";
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPlatformInviteByToken } from "@/lib/queries/invites";
@@ -21,8 +19,6 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
   if (!invite || invite.status !== "pending" || invite.expiresAt < new Date()) {
     notFound();
   }
-
-  await setPlatformInviteCookie(token);
 
   const onboardingUrl = gameToken
     ? `/onboarding?invite=${token}&game=${gameToken}`

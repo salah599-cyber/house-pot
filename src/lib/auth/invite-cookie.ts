@@ -4,15 +4,24 @@ import { INVITE_EXPIRY_DAYS } from "@/lib/constants";
 
 export const PLATFORM_INVITE_COOKIE = "hp_platform_invite";
 
-export async function setPlatformInviteCookie(token: string) {
-  const cookieStore = await cookies();
-  cookieStore.set(PLATFORM_INVITE_COOKIE, token, {
+export function getPlatformInviteCookieOptions() {
+  return {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "lax" as const,
     path: "/",
     maxAge: 60 * 60 * 24 * INVITE_EXPIRY_DAYS,
-  });
+  };
+}
+
+export function parsePlatformInviteTokenFromPath(pathname: string) {
+  const match = pathname.match(/^\/invite\/([^/?#]+)/);
+  return match?.[1] ?? null;
+}
+
+export async function setPlatformInviteCookie(token: string) {
+  const cookieStore = await cookies();
+  cookieStore.set(PLATFORM_INVITE_COOKIE, token, getPlatformInviteCookieOptions());
 }
 
 export async function getPlatformInviteCookie() {
