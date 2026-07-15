@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 
 import { CopyInviteLinkButton } from "@/components/admin/copy-invite-link-button";
 import { FormFeedback } from "@/components/admin/form-feedback";
@@ -18,38 +18,50 @@ type FeedbackState = {
 
 export function InviteUserForm() {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<FeedbackState>(null);
 
   return (
     <form
+      ref={formRef}
       className="space-y-4"
       action={(formData) =>
         startTransition(async () => {
-          const result = await inviteUsersByEmailAction(formData);
+          setFeedback(null);
 
-          if ("error" in result && result.error) {
-            setFeedback({ type: "error", message: result.error });
-            return;
-          }
+          try {
+            const result = await inviteUsersByEmailAction(formData);
 
-          if ("warning" in result && result.warning) {
+            if ("error" in result && result.error) {
+              setFeedback({ type: "error", message: result.error });
+              return;
+            }
+
+            if ("warning" in result && result.warning) {
+              setFeedback({
+                type: "warning",
+                message: result.warning,
+                inviteLink: result.inviteLink,
+              });
+            } else {
+              setFeedback({
+                type: "success",
+                message:
+                  ("message" in result && result.message) ||
+                  "Invite created successfully.",
+                inviteLink: "inviteLink" in result ? result.inviteLink : undefined,
+              });
+              formRef.current?.reset();
+            }
+
+            router.refresh();
+          } catch {
             setFeedback({
-              type: "warning",
-              message: result.warning,
-              inviteLink: result.inviteLink,
-            });
-          } else {
-            setFeedback({
-              type: "success",
-              message:
-                ("message" in result && result.message) ||
-                "Invite created successfully.",
-              inviteLink: "inviteLink" in result ? result.inviteLink : undefined,
+              type: "error",
+              message: "Something went wrong while sending the invite. Please try again.",
             });
           }
-
-          router.refresh();
         })
       }
     >

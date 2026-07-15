@@ -8,8 +8,8 @@ import { logAudit } from "@/lib/audit";
 import { grantHostRole, requireDbUser, requireRole } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { platformInvites, users } from "@/lib/db/schema";
-import { createInviteToken, getAppUrl, getInviteExpiryDate } from "@/lib/invites";
 import { describeEmailDeliveryIssue } from "@/lib/email";
+import { createInviteToken, getAppUrl, getInviteExpiryDate } from "@/lib/invites";
 import { rateLimitSendInvites } from "@/lib/rate-limit";
 import { sendPlatformInviteNotification } from "@/server/notifications";
 
@@ -17,6 +17,27 @@ const inviteEmailSchema = z.object({
   email: z.string().email(),
   targetRole: z.enum(["player", "host"]).default("player"),
 });
+
+type InviteActionResult =
+  | { success: true; message: string; warning?: string; inviteLink?: string }
+  | { error: string };
+
+type PlatformInviteResult =
+  | {
+      success: true;
+      immediate: true;
+      userId: string;
+      inviteLink: string;
+      emailWarning: string | null;
+    }
+  | {
+      success: true;
+      immediate: false;
+      token: string;
+      inviteLink: string;
+      emailWarning: string | null;
+    }
+  | { error: string };
 
 function parseInviteEmails(raw: string) {
   return [
@@ -49,7 +70,7 @@ export async function createPlatformInviteForEmail({
   invitedByUserId: string;
   inviterName: string;
   targetRole: "player" | "host";
-}) {
+}): Promise<PlatformInviteResult> {
   const normalizedEmail = email.toLowerCase();
 
   const existingUser = await db.query.users.findFirst({
@@ -114,7 +135,7 @@ export async function createPlatformInviteForEmail({
   };
 }
 
-export async function inviteUsersByEmailAction(formData: FormData) {
+export async function inviteUsersByEmailAction(formData: FormData): Promise<InviteActionResult> {
   const admin = await requireRole("super_admin");
 
   const limited = await rateLimitSendInvites(admin.id);
@@ -139,7 +160,7 @@ export async function inviteUsersByEmailAction(formData: FormData) {
   });
 
   if ("error" in result) {
-    return result;
+    return { error: result.error };
   }
 
   await logAudit({
@@ -176,19 +197,24 @@ export async function inviteUsersByEmailAction(formData: FormData) {
       success: true,
       warning: result.emailWarning,
       inviteLink: result.inviteLink,
+      message: result.immediate
+        ? `Host access granted to ${parsed.data.email}, but email was not delivered.`
+        : `Invite created for ${parsed.data.email}, but email was not delivered.`,
     };
   }
 
   return {
     success: true,
     message: result.immediate
-      ? "Host role granted. A notification email was sent if email delivery is configured."
-      : "Invite created and email sent.",
+      ? `Host access granted to ${parsed.data.email}.`
+      : `${parsed.data.targetRole === "host" ? "Host" : "Player"} invite sent to ${parsed.data.email}.`,
     inviteLink: result.inviteLink,
   };
 }
 
-export async function invitePlayersToPlatformAction(formData: FormData) {
+export async function invitePlayersToPlatformAction(
+  formData: FormData,
+): Promise<InviteActionResult> {
   const host = await requireRole("host");
 
   const limited = await rateLimitSendInvites(host.id);
@@ -202,8 +228,8 @@ export async function invitePlayersToPlatformAction(formData: FormData) {
   }
 
   const errors: string[] = [];
-  const warnings: string[] = [];
   let sent = 0;
+  let emailWarnings = 0;
 
   for (const email of emails) {
     if (email === host.email.toLowerCase()) continue;
@@ -221,7 +247,7 @@ export async function invitePlayersToPlatformAction(formData: FormData) {
     }
 
     if ("emailWarning" in result && result.emailWarning) {
-      warnings.push(`${email}: ${result.emailWarning}`);
+      emailWarnings += 1;
     }
 
     await logAudit({
@@ -241,17 +267,27 @@ export async function invitePlayersToPlatformAction(formData: FormData) {
   }
 
   if (errors.length > 0) {
-    return { success: true, warning: `Sent ${sent} invite(s). Skipped: ${errors.join(" ")}` };
-  }
-
-  if (warnings.length > 0) {
     return {
       success: true,
-      warning: `Created ${sent} invite(s), but email delivery had issues. Copy each invite link from Pending invites or configure RESEND_API_KEY in Vercel.`,
+      message: `Sent ${sent} invite(s). Skipped: ${errors.join(" ")}`,
+      warning: `Sent ${sent} invite(s). Skipped: ${errors.join(" ")}`,
     };
   }
 
-  return { success: true, message: `Sent ${sent} invite(s).` };
+  if (emailWarnings > 0) {
+    return {
+      success: true,
+      message:
+        sent === 1 ? "Invite created successfully." : `Created ${sent} invites successfully.`,
+      warning:
+        "Email delivery is not configured or failed. Copy each invite link from Pending invites or configure RESEND_API_KEY in Vercel.",
+    };
+  }
+
+  return {
+    success: true,
+    message: sent === 1 ? "Invite sent successfully." : `Sent ${sent} invites successfully.`,
+  };
 }
 
 export async function resendPendingInviteEmailAction(inviteId: string) {
