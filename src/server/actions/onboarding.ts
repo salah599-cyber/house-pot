@@ -6,6 +6,10 @@ import { redirect } from "next/navigation";
 import { getDefaultDashboardPath } from "@/lib/auth/roles";
 import { logAudit } from "@/lib/audit";
 import {
+  clearPlatformInviteCookie,
+  getPlatformInviteCookie,
+} from "@/lib/auth/invite-cookie";
+import {
   getDbUserByClerkId,
   getUserRoles,
   grantHostRole,
@@ -48,8 +52,11 @@ export async function completeOnboardingAction(inviteToken?: string, gameToken?:
   let inviteAccepted = false;
   let inviteTargetRole: "player" | "host" | null = null;
 
-  if (inviteToken) {
-    const invite = await getPlatformInviteByToken(inviteToken);
+  const inviteFromCookie = await getPlatformInviteCookie();
+  const effectiveInviteToken = inviteToken ?? inviteFromCookie ?? undefined;
+
+  if (effectiveInviteToken) {
+    const invite = await getPlatformInviteByToken(effectiveInviteToken);
     if (
       invite &&
       invite.status === "pending" &&
@@ -106,6 +113,8 @@ export async function completeOnboardingAction(inviteToken?: string, gameToken?:
   if (gameToken) {
     redirect(`/game-invite/${gameToken}`);
   }
+
+  await clearPlatformInviteCookie();
 
   const refreshed = await getDbUserByClerkId(userId);
   redirect(getDefaultDashboardPath(refreshed ? getUserRoles(refreshed) : ["player"]));

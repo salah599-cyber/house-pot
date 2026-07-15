@@ -63,7 +63,7 @@ Copy `.env.example` to `.env.local` and fill in:
 
 In Clerk Dashboard:
 
-1. Disable public sign-up or restrict registrations to invited users only
+1. **Restrict sign-ups** — under User & Authentication → Restrictions, disable public sign-up (or allow only invited emails). The app also blocks `/sign-up` and requires a valid platform invite at onboarding.
 2. Set sign-in URL to `/sign-in`
 
 ### 3. Database

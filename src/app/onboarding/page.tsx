@@ -15,6 +15,9 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
         <h1 className="text-2xl font-semibold">Registration blocked</h1>
         <p className="mt-3 text-muted-foreground">{result.error}</p>
+        <p className="mt-4 text-sm text-muted-foreground">
+          Open the invitation link from your host or admin email to register.
+        </p>
       </div>
     );
   }
