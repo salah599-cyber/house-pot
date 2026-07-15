@@ -1,5 +1,8 @@
+import { CopyInviteLinkButton } from "@/components/admin/copy-invite-link-button";
 import { InviteUserForm } from "@/components/admin/invite-user-form";
+import { ResendInviteEmailButton } from "@/components/admin/resend-invite-email-button";
 import { requireRole } from "@/lib/auth/session";
+import { isEmailDeliveryConfigured } from "@/lib/email";
 import { formatDateTime } from "@/lib/dates";
 import { getAppUrl } from "@/lib/invites";
 import { Badge } from "@/components/ui/badge";
@@ -11,9 +14,26 @@ export const dynamic = "force-dynamic";
 export default async function SuperAdminInvitesPage() {
   await requireRole("super_admin");
   const pendingInvites = await getPendingPlatformInvites();
+  const emailConfigured = isEmailDeliveryConfigured();
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="space-y-6">
+      {!emailConfigured ? (
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardHeader>
+            <CardTitle className="text-base">Email delivery is not configured</CardTitle>
+            <CardDescription>
+              Invites are saved, but no email is sent until you add{" "}
+              <code className="text-xs">RESEND_API_KEY</code> in Vercel environment variables.
+              Use a verified sender in <code className="text-xs">EMAIL_FROM</code> (for example{" "}
+              <code className="text-xs">House Poker &lt;invites@yourdomain.com&gt;</code>).
+              Until then, copy the invite link from Pending invites and send it manually.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      ) : null}
+
+      <div className="grid gap-6 lg:grid-cols-2">
       <Card>
         <CardHeader>
           <CardTitle>Invite users</CardTitle>
@@ -36,7 +56,10 @@ export default async function SuperAdminInvitesPage() {
           {pendingInvites.length === 0 ? (
             <p className="text-sm text-muted-foreground">No pending invites.</p>
           ) : (
-            pendingInvites.map((invite) => (
+            pendingInvites.map((invite) => {
+              const inviteLink = getAppUrl(`/invite/${invite.token}`);
+
+              return (
               <div key={invite.id} className="rounded-lg border border-border p-4 text-sm">
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-medium">{invite.email}</p>
@@ -46,14 +69,18 @@ export default async function SuperAdminInvitesPage() {
                   Invited by {invite.invitedBy.displayName} · expires{" "}
                   {formatDateTime(invite.expiresAt)}
                 </p>
-                <p className="mt-2 break-all text-xs text-muted-foreground">
-                  {getAppUrl(`/invite/${invite.token}`)}
-                </p>
+                <p className="mt-2 break-all text-xs text-muted-foreground">{inviteLink}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <CopyInviteLinkButton inviteLink={inviteLink} />
+                  <ResendInviteEmailButton inviteId={invite.id} inviteLink={inviteLink} />
+                </div>
               </div>
-            ))
+            );
+            })
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

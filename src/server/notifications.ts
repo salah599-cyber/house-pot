@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { emailTemplate, sendEmail } from "@/lib/email";
+import { emailTemplate, sendEmail, type SendEmailResult } from "@/lib/email";
 import { notifications } from "@/lib/db/schema";
 
 type NotificationEmailInput = {
@@ -13,7 +13,7 @@ type NotificationEmailInput = {
   emailBody?: string;
 };
 
-export async function createNotification(input: NotificationEmailInput) {
+export async function createNotification(input: NotificationEmailInput): Promise<SendEmailResult> {
   await db.insert(notifications).values({
     userId: input.userId,
     email: input.email,
@@ -23,18 +23,20 @@ export async function createNotification(input: NotificationEmailInput) {
     link: input.link,
   });
 
-  if (input.email) {
-    await sendEmail({
-      to: input.email,
-      subject: input.emailSubject ?? input.title,
-      html: emailTemplate(
-        input.title,
-        input.emailBody ?? input.body,
-        input.link,
-        "Open in House Poker",
-      ),
-    });
+  if (!input.email) {
+    return { status: "skipped", reason: "missing_api_key" };
   }
+
+  return sendEmail({
+    to: input.email,
+    subject: input.emailSubject ?? input.title,
+    html: emailTemplate(
+      input.title,
+      input.emailBody ?? input.body,
+      input.link,
+      "Open in House Poker",
+    ),
+  });
 }
 
 type GameInviteNotificationInput = {
@@ -130,7 +132,7 @@ export async function sendPlatformInviteNotification(input: PlatformInviteNotifi
     ? `${input.inviterName} invited you to join House Poker as a host. Register with this email to create and manage cash games.`
     : `${input.inviterName} invited you to join House Poker. Register to confirm game seats and track your buy-ins and settlements.`;
 
-  await createNotification({
+  return createNotification({
     email: input.email,
     userId: input.userId,
     type: "platform_invite",

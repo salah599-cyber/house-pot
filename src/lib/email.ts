@@ -6,23 +6,36 @@ type SendEmailInput = {
   html: string;
 };
 
-export async function sendEmail(input: SendEmailInput) {
-  const apiKey = process.env.RESEND_API_KEY;
+export type SendEmailResult =
+  | { status: "sent" }
+  | { status: "skipped"; reason: "missing_api_key" }
+  | { status: "failed"; reason: string };
+
+export function isEmailDeliveryConfigured() {
+  return Boolean(process.env.RESEND_API_KEY?.trim());
+}
+
+export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
   const from = process.env.EMAIL_FROM ?? "House Poker <onboarding@resend.dev>";
 
   if (!apiKey) {
-    return { skipped: true as const };
+    return { status: "skipped", reason: "missing_api_key" };
   }
 
   const resend = new Resend(apiKey);
-  await resend.emails.send({
+  const { error } = await resend.emails.send({
     from,
     to: input.to,
     subject: input.subject,
     html: input.html,
   });
 
-  return { sent: true as const };
+  if (error) {
+    return { status: "failed", reason: error.message };
+  }
+
+  return { status: "sent" };
 }
 
 export function emailButton(href: string, label: string) {
@@ -38,4 +51,16 @@ export function emailTemplate(title: string, body: string, actionHref?: string, 
       <p style="font-size:12px;color:#737373">House Poker — invite-only home games</p>
     </div>
   `;
+}
+
+export function describeEmailDeliveryIssue(result: SendEmailResult) {
+  if (result.status === "sent") {
+    return null;
+  }
+
+  if (result.status === "skipped") {
+    return "Email was not sent because RESEND_API_KEY is not configured. Copy the invite link and send it manually.";
+  }
+
+  return `Email could not be delivered: ${result.reason}. Copy the invite link and send it manually.`;
 }

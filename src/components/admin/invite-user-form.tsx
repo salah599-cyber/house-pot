@@ -1,27 +1,70 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 
+import { CopyInviteLinkButton } from "@/components/admin/copy-invite-link-button";
+import { FormFeedback } from "@/components/admin/form-feedback";
 import { inviteUsersByEmailAction } from "@/server/actions/invites";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+type FeedbackState = {
+  type: "success" | "warning" | "error";
+  message: string;
+  inviteLink?: string;
+} | null;
+
 export function InviteUserForm() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [feedback, setFeedback] = useState<FeedbackState>(null);
 
   return (
     <form
       className="space-y-4"
       action={(formData) =>
         startTransition(async () => {
-          await inviteUsersByEmailAction(formData);
+          const result = await inviteUsersByEmailAction(formData);
+
+          if ("error" in result && result.error) {
+            setFeedback({ type: "error", message: result.error });
+            return;
+          }
+
+          if ("warning" in result && result.warning) {
+            setFeedback({
+              type: "warning",
+              message: result.warning,
+              inviteLink: result.inviteLink,
+            });
+          } else {
+            setFeedback({
+              type: "success",
+              message:
+                ("message" in result && result.message) ||
+                "Invite created successfully.",
+              inviteLink: "inviteLink" in result ? result.inviteLink : undefined,
+            });
+          }
+
           router.refresh();
         })
       }
     >
+      {feedback ? (
+        <div className="space-y-2">
+          <FormFeedback
+            type={feedback.type}
+            message={feedback.message}
+            inviteLink={feedback.inviteLink}
+          />
+          {feedback.inviteLink ? (
+            <CopyInviteLinkButton inviteLink={feedback.inviteLink} />
+          ) : null}
+        </div>
+      ) : null}
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input
@@ -45,7 +88,7 @@ export function InviteUserForm() {
         </select>
       </div>
       <Button type="submit" disabled={isPending}>
-        Send invite
+        {isPending ? "Sending..." : "Send invite"}
       </Button>
     </form>
   );

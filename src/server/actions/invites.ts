@@ -9,6 +9,7 @@ import { grantHostRole, requireDbUser, requireRole } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { platformInvites, users } from "@/lib/db/schema";
 import { createInviteToken, getAppUrl, getInviteExpiryDate } from "@/lib/invites";
+import { describeEmailDeliveryIssue } from "@/lib/email";
 import { rateLimitSendInvites } from "@/lib/rate-limit";
 import { sendPlatformInviteNotification } from "@/server/notifications";
 
@@ -58,14 +59,20 @@ export async function createPlatformInviteForEmail({
   if (existingUser) {
     if (targetRole === "host") {
       await grantHostRole(existingUser.id);
-      await sendPlatformInviteNotification({
+      const emailResult = await sendPlatformInviteNotification({
         email: normalizedEmail,
         userId: existingUser.id,
         inviterName,
         inviteLink: getAppUrl("/host/dashboard"),
         targetRole: "host",
       });
-      return { success: true as const, immediate: true as const, userId: existingUser.id };
+      return {
+        success: true as const,
+        immediate: true as const,
+        userId: existingUser.id,
+        inviteLink: getAppUrl("/host/dashboard"),
+        emailWarning: describeEmailDeliveryIssue(emailResult),
+      };
     }
 
     return {
@@ -90,7 +97,7 @@ export async function createPlatformInviteForEmail({
   });
 
   const inviteLink = getAppUrl(`/invite/${token}`);
-  await sendPlatformInviteNotification({
+  const emailResult = await sendPlatformInviteNotification({
     email: normalizedEmail,
     userId: null,
     inviterName,
@@ -98,7 +105,13 @@ export async function createPlatformInviteForEmail({
     targetRole,
   });
 
-  return { success: true as const, immediate: false as const, token };
+  return {
+    success: true as const,
+    immediate: false as const,
+    token,
+    inviteLink,
+    emailWarning: describeEmailDeliveryIssue(emailResult),
+  };
 }
 
 export async function inviteUsersByEmailAction(formData: FormData) {
@@ -157,7 +170,22 @@ export async function inviteUsersByEmailAction(formData: FormData) {
 
   revalidatePath("/super-admin/invites");
   revalidatePath("/super-admin/users");
-  return { success: true };
+
+  if (result.emailWarning) {
+    return {
+      success: true,
+      warning: result.emailWarning,
+      inviteLink: result.inviteLink,
+    };
+  }
+
+  return {
+    success: true,
+    message: result.immediate
+      ? "Host role granted. A notification email was sent if email delivery is configured."
+      : "Invite created and email sent.",
+    inviteLink: result.inviteLink,
+  };
 }
 
 export async function invitePlayersToPlatformAction(formData: FormData) {
@@ -174,6 +202,7 @@ export async function invitePlayersToPlatformAction(formData: FormData) {
   }
 
   const errors: string[] = [];
+  const warnings: string[] = [];
   let sent = 0;
 
   for (const email of emails) {
@@ -189,6 +218,10 @@ export async function invitePlayersToPlatformAction(formData: FormData) {
     if ("error" in result && result.error) {
       errors.push(result.error);
       continue;
+    }
+
+    if ("emailWarning" in result && result.emailWarning) {
+      warnings.push(`${email}: ${result.emailWarning}`);
     }
 
     await logAudit({
@@ -211,7 +244,52 @@ export async function invitePlayersToPlatformAction(formData: FormData) {
     return { success: true, warning: `Sent ${sent} invite(s). Skipped: ${errors.join(" ")}` };
   }
 
-  return { success: true };
+  if (warnings.length > 0) {
+    return {
+      success: true,
+      warning: `Created ${sent} invite(s), but email delivery had issues. Copy each invite link from Pending invites or configure RESEND_API_KEY in Vercel.`,
+    };
+  }
+
+  return { success: true, message: `Sent ${sent} invite(s).` };
+}
+
+export async function resendPendingInviteEmailAction(inviteId: string) {
+  const admin = await requireRole("super_admin");
+
+  const limited = await rateLimitSendInvites(admin.id);
+  if (!limited.success) {
+    return { error: limited.error };
+  }
+
+  const invite = await db.query.platformInvites.findFirst({
+    where: and(
+      eq(platformInvites.id, inviteId),
+      eq(platformInvites.status, "pending"),
+      gt(platformInvites.expiresAt, new Date()),
+    ),
+    with: { invitedBy: true },
+  });
+
+  if (!invite) {
+    return { error: "Invite not found or expired." };
+  }
+
+  const inviteLink = getAppUrl(`/invite/${invite.token}`);
+  const emailResult = await sendPlatformInviteNotification({
+    email: invite.email,
+    userId: null,
+    inviterName: invite.invitedBy.displayName,
+    inviteLink,
+    targetRole: invite.targetRole === "host" ? "host" : "player",
+  });
+
+  const emailWarning = describeEmailDeliveryIssue(emailResult);
+  if (emailWarning) {
+    return { success: true, warning: emailWarning, inviteLink };
+  }
+
+  return { success: true, message: `Invite email resent to ${invite.email}.` };
 }
 
 export async function getPendingPlatformInvites() {
