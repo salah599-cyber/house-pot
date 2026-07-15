@@ -1,6 +1,6 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
 import { getDefaultDashboardPath } from "@/lib/auth/roles";
@@ -17,7 +17,7 @@ import {
   seedSuperAdminIfNeeded,
 } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { platformInvites, users } from "@/lib/db/schema";
+import { gameInvites, notifications, platformInvites, users } from "@/lib/db/schema";
 import { getPlatformInviteByToken } from "@/lib/queries/invites";
 
 export async function completeOnboardingAction(
@@ -116,6 +116,16 @@ export async function completeOnboardingAction(
     await grantHostRole(user.id);
   }
   await seedSuperAdminIfNeeded(email, user.id);
+
+  await db
+    .update(notifications)
+    .set({ userId: user.id })
+    .where(and(eq(notifications.email, email), isNull(notifications.userId)));
+
+  await db
+    .update(gameInvites)
+    .set({ userId: user.id })
+    .where(and(eq(gameInvites.email, email), isNull(gameInvites.userId)));
 
   await logAudit({
     actorUserId: user.id,

@@ -22,6 +22,8 @@ import {
   games,
   platformInvites,
 } from "@/lib/db/schema";
+import { describeEmailDeliveryIssue } from "@/lib/email";
+import { ensureClerkInvitation } from "@/lib/clerk-invitations";
 import { createInviteToken, getAppUrl, getInviteExpiryDate } from "@/lib/invites";
 import { createJoinCode } from "@/lib/join-code";
 import { logAudit } from "@/lib/audit";
@@ -94,11 +96,36 @@ export async function createGameAction(formData: FormData) {
   });
 
   if (emails.length > 0) {
-    await inviteEmailsToGame(game.id, emails, user.id, user.displayName, game.title);
+    const inviteResult = await inviteEmailsToGame(
+      game.id,
+      emails,
+      user.id,
+      user.displayName,
+      game.title,
+    );
+
+    revalidatePath("/host/dashboard");
+    revalidatePath(`/host/games/${game.id}`);
+
+    if ("error" in inviteResult && inviteResult.error) {
+      return {
+        success: true,
+        gameId: game.id,
+        invitesSent: 0,
+        warning: `Game created, but invites failed: ${inviteResult.error}`,
+      };
+    }
+
+    return {
+      success: true,
+      gameId: game.id,
+      invitesSent: inviteResult.sent,
+      warning: inviteResult.warning,
+    };
   }
 
   revalidatePath("/host/dashboard");
-  return { success: true, gameId: game.id };
+  return { success: true, gameId: game.id, invitesSent: 0 };
 }
 
 export async function inviteEmailsToGame(
@@ -122,6 +149,8 @@ export async function inviteEmailsToGame(
   }
 
   const uniqueEmails = [...new Set(emails.map((email) => email.toLowerCase()))];
+  let sent = 0;
+  const warnings: string[] = [];
 
   for (const email of uniqueEmails) {
     if (email === user.email.toLowerCase()) continue;
@@ -179,7 +208,7 @@ export async function inviteEmailsToGame(
       ? getAppUrl(`/invite/${platformInviteToken}?game=${gameInviteToken}`)
       : getAppUrl(`/game-invite/${gameInviteToken}`);
 
-    await sendGameInviteNotifications({
+    const emailResult = await sendGameInviteNotifications({
       email,
       userId: existingUser?.id ?? null,
       gameTitle,
@@ -187,6 +216,32 @@ export async function inviteEmailsToGame(
       registrationLink,
       gameInviteLink: getAppUrl(`/game-invite/${gameInviteToken}`),
     });
+
+    const emailDelivered = emailResult.status === "sent";
+    if (!emailDelivered && !existingUser && platformInviteToken) {
+      const clerkResult = await ensureClerkInvitation({
+        emailAddress: email,
+        redirectUrl: registrationLink,
+        notify: true,
+      });
+      if ("emailed" in clerkResult && clerkResult.emailed) {
+        // Clerk invitation email sent for unregistered player.
+      } else {
+        const issue = describeEmailDeliveryIssue(emailResult);
+        if (issue) {
+          warnings.push(`${email}: ${issue}`);
+        }
+      }
+    } else if (!emailDelivered) {
+      const issue = describeEmailDeliveryIssue(emailResult);
+      if (issue) {
+        warnings.push(
+          existingUser
+            ? `${email}: ${issue} They can still see the invite in their player dashboard.`
+            : `${email}: ${issue}`,
+        );
+      }
+    }
 
     await logAudit({
       actorUserId: invitedByUserId,
@@ -196,10 +251,20 @@ export async function inviteEmailsToGame(
       summary: `Invited ${email} to ${gameTitle}`,
       metadata: { email, hasPlatformInvite: Boolean(platformInviteToken) },
     });
+    sent += 1;
   }
 
   revalidatePath(`/host/games/${gameId}`);
-  return { success: true };
+
+  if (warnings.length > 0) {
+    return {
+      success: true,
+      sent,
+      warning: warnings.join(" "),
+    };
+  }
+
+  return { success: true, sent };
 }
 
 export async function invitePlayersAction(gameId: string, formData: FormData) {

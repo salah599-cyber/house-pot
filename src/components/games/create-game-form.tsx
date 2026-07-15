@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 
+import { FormFeedback } from "@/components/admin/form-feedback";
 import { createGameAction } from "@/server/actions/games";
 import { BUY_IN_OPTIONS, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_MAX_PLAYERS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -25,23 +26,52 @@ type CreateGameFormProps = {
   };
 };
 
+type FeedbackState = {
+  type: "success" | "warning" | "error";
+  message: string;
+} | null;
+
 export function CreateGameForm({ defaults }: CreateGameFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [feedback, setFeedback] = useState<FeedbackState>(null);
 
   return (
     <form
       className="space-y-5"
       action={(formData) =>
         startTransition(async () => {
+          setFeedback(null);
           const result = await createGameAction(formData);
+
+          if ("error" in result && result.error) {
+            setFeedback({ type: "error", message: result.error });
+            return;
+          }
+
           if (result.success && result.gameId) {
+            if (result.warning) {
+              setFeedback({ type: "warning", message: result.warning });
+            } else if (result.invitesSent && result.invitesSent > 0) {
+              setFeedback({
+                type: "success",
+                message: `Game created and ${result.invitesSent} invite(s) sent.`,
+              });
+            } else {
+              setFeedback({
+                type: "warning",
+                message:
+                  "Game created with no player emails. Add emails below on the game page or create again with invite emails filled in.",
+              });
+            }
+
             router.push(`/host/games/${result.gameId}`);
             router.refresh();
           }
         })
       }
     >
+      {feedback ? <FormFeedback type={feedback.type} message={feedback.message} /> : null}
       <div className="space-y-2">
         <Label htmlFor="title">Game title</Label>
         <Input id="title" name="title" placeholder="Friday Night Cash Game" required />
@@ -118,8 +148,9 @@ export function CreateGameForm({ defaults }: CreateGameFormProps) {
           rows={4}
         />
         <p className="text-xs text-muted-foreground">
-          Unregistered players receive an invite to register. Registered players get a game
-          notification to confirm their seat.
+          Add player emails here to invite them when the game is created. Registered players get
+          an in-app notification; new players get a registration invite. You can also invite later
+          from the game page.
         </p>
       </div>
 

@@ -54,13 +54,15 @@ export async function sendGameInviteNotifications(input: GameInviteNotificationI
     ? `${input.hostName} invited you to a cash game. Confirm your spot before seats fill up.`
     : `${input.hostName} invited you to join House Poker and play in ${input.gameTitle}. Register first, then confirm your seat.`;
 
-  await createNotification({
+  return createNotification({
     email: input.email,
     userId: input.userId,
     type: input.userId ? "game_invite" : "platform_invite",
     title,
     body,
     link: input.userId ? input.gameInviteLink : input.registrationLink,
+    emailSubject: title,
+    emailBody: body,
   });
 }
 
