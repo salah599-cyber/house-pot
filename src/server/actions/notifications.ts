@@ -1,6 +1,6 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { requireDbUser } from "@/lib/auth/session";
@@ -10,10 +10,20 @@ import { notifications } from "@/lib/db/schema";
 export async function markNotificationReadAction(notificationId: string) {
   const user = await requireDbUser();
 
-  await db
+  const updated = await db
     .update(notifications)
     .set({ read: true })
-    .where(eq(notifications.id, notificationId));
+    .where(
+      and(
+        eq(notifications.id, notificationId),
+        or(eq(notifications.userId, user.id), eq(notifications.email, user.email)),
+      ),
+    )
+    .returning({ id: notifications.id });
+
+  if (updated.length === 0) {
+    return { error: "Notification not found." };
+  }
 
   revalidatePath("/player/dashboard");
   return { success: true };
