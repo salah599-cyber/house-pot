@@ -63,7 +63,7 @@ export async function getGameInviteForUser(token: string, userId: string, email:
   }
 
   if (invite.email.toLowerCase() !== email.toLowerCase()) {
-    return { status: "wrong_account" as const };
+    return { status: "wrong_account" as const, invitedEmail: invite.email };
   }
 
   return { status: "ok" as const, invite };

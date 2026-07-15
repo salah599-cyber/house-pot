@@ -61,12 +61,13 @@ export async function completeOnboardingAction(
 
   if (effectiveInviteToken) {
     const invite = await getPlatformInviteByToken(effectiveInviteToken);
-    if (
-      invite &&
-      invite.status === "pending" &&
-      invite.email.toLowerCase() === email &&
-      invite.expiresAt > new Date()
-    ) {
+    if (invite && invite.status === "pending" && invite.expiresAt > new Date()) {
+      if (invite.email.toLowerCase() !== email) {
+        return {
+          error: `This invite was sent to ${invite.email}, but you signed in as ${email}. Sign out and register with the invited email address.`,
+        };
+      }
+
       inviteAccepted = true;
       inviteTargetRole = invite.targetRole === "host" ? "host" : "player";
       await db

@@ -27,8 +27,9 @@ export default async function GameInvitePage({ params }: GameInvitePageProps) {
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
         <h1 className="text-2xl font-semibold">Wrong account</h1>
         <p className="mt-3 text-muted-foreground">
-          This invite was sent to another email address. Sign out and sign in with the
-          invited account, or ask the host for a new invite.
+          This invite was sent to <strong>{result.invitedEmail}</strong>. You are signed in as{" "}
+          <strong>{user.email}</strong>. Sign out and sign in with the invited email, or ask the
+          host for a new invite.
         </p>
         <Button asChild className="mt-6" variant="outline">
           <Link href="/player/dashboard">Back to dashboard</Link>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { SignUp } from "@clerk/nextjs";
 
+import { WrongInviteAccount } from "@/components/auth/wrong-invite-account";
 import { ensureClerkInvitation } from "@/lib/clerk-invitations";
 import { getAppUrl } from "@/lib/invites";
 import { getPlatformInviteByToken } from "@/lib/queries/invites";
@@ -36,6 +37,35 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
     ? `/invite/${token}?game=${encodeURIComponent(gameToken)}`
     : `/invite/${token}`;
   const inviteReturnUrl = getAppUrl(inviteReturnPath);
+  const onboardingUrl = gameToken
+    ? `/onboarding?invite=${token}&game=${gameToken}`
+    : `/onboarding?invite=${token}`;
+
+  const { auth, currentUser } = await import("@clerk/nextjs/server");
+  const { userId } = await auth();
+  let signedInEmail: string | null = null;
+
+  if (userId) {
+    const clerkUser = await currentUser();
+    signedInEmail =
+      clerkUser?.primaryEmailAddress?.emailAddress?.toLowerCase() ??
+      clerkUser?.emailAddresses[0]?.emailAddress?.toLowerCase() ??
+      null;
+  }
+
+  if (signedInEmail && signedInEmail !== invite.email.toLowerCase()) {
+    return (
+      <WrongInviteAccount
+        invitedEmail={invite.email}
+        signedInEmail={signedInEmail}
+        returnPath={inviteReturnPath}
+      />
+    );
+  }
+
+  if (signedInEmail === invite.email.toLowerCase()) {
+    redirect(onboardingUrl);
+  }
 
   if (!clerkTicket) {
     const clerkInvite = await ensureClerkInvitation({
@@ -74,10 +104,6 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
       );
     }
   }
-
-  const onboardingUrl = gameToken
-    ? `/onboarding?invite=${token}&game=${gameToken}`
-    : `/onboarding?invite=${token}`;
 
   return (
     <div className="mx-auto grid w-full max-w-4xl gap-8 px-4 py-12 lg:grid-cols-2">
