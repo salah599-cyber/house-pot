@@ -107,6 +107,7 @@ export const platformInvitesRelations = relations(platformInvites, ({ one }) => 
   invitedBy: one(users, {
     fields: [platformInvites.invitedByUserId],
     references: [users.id],
+    relationName: "sent_platform_invites",
   }),
 }));
 
@@ -162,6 +163,23 @@ export const gameInvites = pgTable("game_invites", {
 
 export const gameInvitesRelations = relations(gameInvites, ({ one }) => ({
   game: one(games, { fields: [gameInvites.gameId], references: [games.id] }),
+  user: one(users, { fields: [gameInvites.userId], references: [users.id] }),
+}));
+
+export const transactionsRelations = relations(transactions, ({ one }) => ({
+  game: one(games, {
+    fields: [transactions.gameId],
+    references: [games.id],
+  }),
+  participant: one(gameParticipants, {
+    fields: [transactions.participantId],
+    references: [gameParticipants.id],
+  }),
+  recordedBy: one(users, {
+    fields: [transactions.recordedByUserId],
+    references: [users.id],
+    relationName: "recorded_transactions",
+  }),
 }));
 
 export const transactions = pgTable("transactions", {
@@ -199,6 +217,10 @@ export const settlementLines = pgTable("settlement_lines", {
 });
 
 export const settlementLinesRelations = relations(settlementLines, ({ one }) => ({
+  game: one(games, {
+    fields: [settlementLines.gameId],
+    references: [games.id],
+  }),
   fromParticipant: one(gameParticipants, {
     fields: [settlementLines.fromParticipantId],
     references: [gameParticipants.id],
@@ -240,14 +262,30 @@ export const platformSettings = pgTable("platform_settings", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.userId],
+    references: [users.id],
+  }),
+}));
+
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
-  actor: one(users, { fields: [auditLogs.actorUserId], references: [users.id] }),
+  actor: one(users, {
+    fields: [auditLogs.actorUserId],
+    references: [users.id],
+    relationName: "audit_actor",
+  }),
 }));
 
 export const usersRelations = relations(users, ({ many }) => ({
   roles: many(userRoles),
   hostedGames: many(games),
   participants: many(gameParticipants),
+  gameInvites: many(gameInvites),
+  notifications: many(notifications),
+  auditLogs: many(auditLogs, { relationName: "audit_actor" }),
+  recordedTransactions: many(transactions, { relationName: "recorded_transactions" }),
+  sentPlatformInvites: many(platformInvites, { relationName: "sent_platform_invites" }),
 }));
 
 export const userRolesRelations = relations(userRoles, ({ one }) => ({
@@ -268,6 +306,7 @@ export const gamesRelations = relations(games, ({ one, many }) => ({
 export const gameParticipantsRelations = relations(gameParticipants, ({ one, many }) => ({
   game: one(games, { fields: [gameParticipants.gameId], references: [games.id] }),
   user: one(users, { fields: [gameParticipants.userId], references: [users.id] }),
+  transactions: many(transactions),
   outgoingSettlements: many(settlementLines, { relationName: "settlement_from" }),
   incomingSettlements: many(settlementLines, { relationName: "settlement_to" }),
 }));
