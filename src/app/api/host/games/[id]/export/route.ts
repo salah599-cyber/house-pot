@@ -96,6 +96,7 @@ export async function GET(_request: Request, context: RouteContext) {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="${slugify(game.title)}-export.csv"`,
+      "Cache-Control": "private, no-store",
     },
   });
 }

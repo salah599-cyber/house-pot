@@ -18,7 +18,7 @@ import {
 } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { platformInvites, users } from "@/lib/db/schema";
-import { getPlatformInviteByToken } from "@/server/queries/players";
+import { getPlatformInviteByToken } from "@/lib/queries/invites";
 
 export async function completeOnboardingAction(inviteToken?: string, gameToken?: string) {
   const { auth, currentUser } = await import("@clerk/nextjs/server");

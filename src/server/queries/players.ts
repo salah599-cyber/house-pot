@@ -10,7 +10,6 @@ import {
   gameParticipants,
   games,
   notifications,
-  platformInvites,
   settlementLines,
   transactions,
   users,
@@ -122,27 +121,6 @@ export async function getPlayerGameDetail(gameId: string) {
   };
 }
 
-export async function getPlatformInviteByToken(token: string) {
-  return db.query.platformInvites.findFirst({
-    where: eq(platformInvites.token, token),
-    with: {
-      invitedBy: true,
-    },
-  });
-}
-
-export async function getGameInviteByToken(token: string) {
-  return db.query.gameInvites.findFirst({
-    where: eq(gameInvites.token, token),
-    with: {
-      game: {
-        with: {
-          host: true,
-        },
-      },
-    },
-  });
-}
 
 export async function getSuperAdminOverview() {
   const user = await requireDbUser();

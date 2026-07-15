@@ -1,33 +1,43 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
-import { getCurrentDbUser } from "@/lib/auth/session";
+import { getGameInviteForUser } from "@/lib/auth/game-access";
+import { requireDbUser } from "@/lib/auth/session";
 import { formatDateTime } from "@/lib/dates";
 import { ConfirmSpotButtons } from "@/components/games/confirm-spot-buttons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getGameInviteByToken } from "@/server/queries/players";
 
 type GameInvitePageProps = {
   params: Promise<{ token: string }>;
 };
 
 export default async function GameInvitePage({ params }: GameInvitePageProps) {
+  const user = await requireDbUser();
   const { token } = await params;
-  const invite = await getGameInviteByToken(token);
+  const result = await getGameInviteForUser(token, user.id, user.email);
 
-  if (!invite) {
+  if (result.status === "not_found") {
+    notFound();
+  }
+
+  if (result.status === "wrong_account") {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <h1 className="text-2xl font-semibold">Invite not found</h1>
-        <p className="mt-2 text-muted-foreground">This game invite link is invalid.</p>
+        <h1 className="text-2xl font-semibold">Wrong account</h1>
+        <p className="mt-3 text-muted-foreground">
+          This invite was sent to another email address. Sign out and sign in with the
+          invited account, or ask the host for a new invite.
+        </p>
+        <Button asChild className="mt-6" variant="outline">
+          <Link href="/player/dashboard">Back to dashboard</Link>
+        </Button>
       </div>
     );
   }
 
-  const currentUser = await getCurrentDbUser();
-
+  const { invite } = result;
   const game = invite.game;
 
   return (
@@ -59,24 +69,7 @@ export default async function GameInvitePage({ params }: GameInvitePageProps) {
             ) : null}
           </div>
 
-          {!currentUser ? (
-            <div className="rounded-lg border border-border p-4">
-              <p className="mb-3 text-muted-foreground">
-                This invite was sent to <strong>{invite.email}</strong>. Sign in or register
-                with that email to confirm your seat.
-              </p>
-              <div className="flex gap-3">
-                <Button asChild>
-                  <Link href="/sign-in">Sign in</Link>
-                </Button>
-              </div>
-            </div>
-          ) : currentUser.email.toLowerCase() !== invite.email.toLowerCase() ? (
-            <p className="text-destructive">
-              You are signed in as {currentUser.email}, but this invite was sent to{" "}
-              {invite.email}.
-            </p>
-          ) : invite.status === "confirmed" ? (
+          {invite.status === "confirmed" ? (
             <div className="space-y-3">
               <p className="text-emerald-400">Your seat is confirmed.</p>
               <Button asChild>

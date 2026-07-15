@@ -2,10 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ConfirmSpotButtons } from "@/components/games/confirm-spot-buttons";
-import { getCurrentDbUser } from "@/lib/auth/session";
+import { getGameForJoinCode } from "@/lib/auth/game-access";
+import { getUserRoles, requireDbUser } from "@/lib/auth/session";
 import { formatDateTime, formatMoney } from "@/lib/dates";
-import { db } from "@/lib/db";
-import { games } from "@/lib/db/schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,28 +14,17 @@ type JoinPageProps = {
 };
 
 export default async function JoinPage({ params }: JoinPageProps) {
+  const user = await requireDbUser();
+  const roles = getUserRoles(user);
   const { code } = await params;
-  const game = await db.query.games.findFirst({
-    where: (fields, { eq: equals }) => equals(fields.joinCode, code.toUpperCase()),
-    with: { host: true },
-  });
 
-  if (!game || game.status === "cancelled") {
+  const access = await getGameForJoinCode(code, user.id, user.email, roles);
+
+  if (!access) {
     notFound();
   }
 
-  const currentUser = await getCurrentDbUser();
-  let invite = null;
-
-  if (currentUser) {
-    invite = await db.query.gameInvites.findFirst({
-      where: (fields, { and, eq: equals, or }) =>
-        and(
-          equals(fields.gameId, game.id),
-          or(equals(fields.email, currentUser.email), equals(fields.userId, currentUser.id)),
-        ),
-    });
-  }
+  const { game, invite } = access;
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-6 px-4 py-12">
@@ -62,31 +50,19 @@ export default async function JoinPage({ params }: JoinPageProps) {
             </p>
           </div>
 
-          {!currentUser ? (
-            <div className="rounded-lg border border-border p-4">
-              <p className="mb-3 text-muted-foreground">
-                Sign in to confirm your seat. You must be invited by the host first.
-              </p>
+          {!invite ? (
+            <p className="text-muted-foreground">
+              You have host access to this game. Open it from your host dashboard.
+            </p>
+          ) : invite.status === "confirmed" ? (
+            <div className="space-y-3">
+              <p className="text-emerald-400">Your seat is confirmed.</p>
               <Button asChild>
-                <Link href="/sign-in">Sign in</Link>
+                <Link href={`/player/games/${game.id}`}>View my game</Link>
               </Button>
             </div>
-          ) : invite ? (
-            invite.status === "confirmed" ? (
-              <div className="space-y-3">
-                <p className="text-emerald-400">Your seat is confirmed.</p>
-                <Button asChild>
-                  <Link href={`/player/games/${game.id}`}>View my game</Link>
-                </Button>
-              </div>
-            ) : (
-              <ConfirmSpotButtons token={invite.token} />
-            )
           ) : (
-            <p className="text-muted-foreground">
-              You&apos;re signed in as {currentUser.email}, but you&apos;re not on the guest
-              list for this game. Ask {game.host.displayName} to invite you.
-            </p>
+            <ConfirmSpotButtons token={invite.token} />
           )}
         </CardContent>
       </Card>

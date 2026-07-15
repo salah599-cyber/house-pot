@@ -6,7 +6,7 @@ import { setPlatformInviteCookie } from "@/lib/auth/invite-cookie";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getPlatformInviteByToken } from "@/server/queries/players";
+import { getPlatformInviteByToken } from "@/lib/queries/invites";
 
 type InvitePageProps = {
   params: Promise<{ token: string }>;

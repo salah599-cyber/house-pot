@@ -1,10 +1,13 @@
 import { SuperAdminNav } from "@/components/admin/super-admin-nav";
+import { requireRole } from "@/lib/auth/session";
 
-export default function SuperAdminLayout({
+export default async function SuperAdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  await requireRole("super_admin");
+
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10">
       <div>

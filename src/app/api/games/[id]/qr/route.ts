@@ -36,7 +36,7 @@ export async function GET(_request: Request, context: RouteContext) {
   return new NextResponse(new Uint8Array(png), {
     headers: {
       "Content-Type": "image/png",
-      "Cache-Control": "public, max-age=3600",
+      "Cache-Control": "private, no-store",
     },
   });
 }
