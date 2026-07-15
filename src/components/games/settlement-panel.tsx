@@ -8,8 +8,7 @@ import {
   markSettlementSettledAction,
 } from "@/server/actions/settlements";
 import { formatMoney } from "@/lib/dates";
-import { getAppUrl } from "@/lib/invites";
-import { playerSettlementSummaryMessage } from "@/lib/whatsapp-messages";
+import { buildSettlementWhatsAppMessage } from "@/lib/whatsapp-messages";
 import { WhatsAppShareButton } from "@/components/shared/whatsapp-share-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,7 +32,7 @@ type SettlementLine = {
 
 type SettlementPanelProps = {
   gameId: string;
-  gameTitle: string;
+  gameDate: Date | string;
   currency: string;
   participantId: string;
   settlements: SettlementLine[];
@@ -46,7 +45,7 @@ function displayName(participant: SettlementLine["fromParticipant"]) {
 
 export function SettlementPanel({
   gameId,
-  gameTitle,
+  gameDate,
   currency,
   participantId,
   settlements,
@@ -55,20 +54,13 @@ export function SettlementPanel({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
-  const summaryLines = settlements.map((line) => {
-    const isPayer = line.fromParticipant.id === participantId;
-    const counterparty = displayName(isPayer ? line.toParticipant : line.fromParticipant);
-    const formattedAmount = formatMoney(line.amount, currency);
-
-    return isPayer
-      ? `You owe ${counterparty} ${formattedAmount}`
-      : `You receive ${formattedAmount} from ${counterparty}`;
-  });
-
-  const shareMessage = playerSettlementSummaryMessage({
-    gameTitle,
-    lines: summaryLines,
-    playerGameLink: getAppUrl(`/player/games/${gameId}`),
+  const shareMessage = buildSettlementWhatsAppMessage({
+    date: gameDate,
+    lines: settlements.map((line) => ({
+      fromName: displayName(line.fromParticipant),
+      toName: displayName(line.toParticipant),
+      amount: line.amount,
+    })),
   });
 
   if (settlements.length === 0) {

@@ -122,7 +122,7 @@ export default async function PlayerGamePage({ params }: PlayerGamePageProps) {
       {game.status === "settled" ? (
         <SettlementPanel
           gameId={game.id}
-          gameTitle={game.title}
+          gameDate={game.endedAt ?? game.scheduledAt}
           currency={game.currency}
           participantId={participant.id}
           settlements={mySettlements}

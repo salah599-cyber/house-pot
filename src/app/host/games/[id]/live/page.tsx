@@ -13,8 +13,7 @@ import {
   participantDisplayName,
 } from "@/lib/games/totals";
 import { formatDateTime, formatMoney } from "@/lib/dates";
-import { getAppUrl } from "@/lib/invites";
-import { settlementTransferMessage } from "@/lib/whatsapp-messages";
+import { buildSettlementWhatsAppMessage } from "@/lib/whatsapp-messages";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,6 +70,7 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
 
   const potTotal = totals.reduce((sum, entry) => sum + entry.totalIn, 0);
   const showMobileBar = game.status === "active";
+  const settlementDate = game.endedAt ?? game.scheduledAt;
 
   return (
     <div className={`flex w-full flex-col gap-6 ${showMobileBar ? "pb-24 sm:pb-0" : ""}`}>
@@ -189,11 +189,15 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
           <CardContent>
             <MobileStack>
               {game.settlementLines.map((line) => {
-                const whatsappMessage = settlementTransferMessage({
-                  gameTitle: game.title,
-                  payeeName: participantDisplayName(line.toParticipant),
-                  formattedAmount: formatMoney(line.amount, game.currency),
-                  playerGameLink: getAppUrl(`/player/games/${game.id}`),
+                const whatsappMessage = buildSettlementWhatsAppMessage({
+                  date: settlementDate,
+                  lines: [
+                    {
+                      fromName: participantDisplayName(line.fromParticipant),
+                      toName: participantDisplayName(line.toParticipant),
+                      amount: line.amount,
+                    },
+                  ],
                 });
 
                 return (
@@ -232,11 +236,15 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
                 </TableHeader>
                 <TableBody>
                   {game.settlementLines.map((line) => {
-                    const whatsappMessage = settlementTransferMessage({
-                      gameTitle: game.title,
-                      payeeName: participantDisplayName(line.toParticipant),
-                      formattedAmount: formatMoney(line.amount, game.currency),
-                      playerGameLink: getAppUrl(`/player/games/${game.id}`),
+                    const whatsappMessage = buildSettlementWhatsAppMessage({
+                      date: settlementDate,
+                      lines: [
+                        {
+                          fromName: participantDisplayName(line.fromParticipant),
+                          toName: participantDisplayName(line.toParticipant),
+                          amount: line.amount,
+                        },
+                      ],
                     });
 
                     return (

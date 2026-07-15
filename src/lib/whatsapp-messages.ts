@@ -31,26 +31,24 @@ export function gameInviteRegisteredMessage(input: {
   ].join("\n");
 }
 
-export function settlementTransferMessage(input: {
-  gameTitle: string;
-  payeeName: string;
-  formattedAmount: string;
-  playerGameLink: string;
-}) {
-  return [
-    `Settlements for ${input.gameTitle}:`,
-    `You owe ${input.payeeName} ${input.formattedAmount}.`,
-    `View details: ${input.playerGameLink}`,
-  ].join("\n");
+import { formatSettlementAmount, formatSettlementDate } from "@/lib/dates";
+
+type SettlementLineInput = {
+  fromName: string;
+  toName: string;
+  amount: string | number;
+};
+
+export function formatSettlementLine({ fromName, toName, amount }: SettlementLineInput) {
+  return `${fromName} → ${toName}: ${formatSettlementAmount(amount)}`;
 }
 
-export function playerSettlementSummaryMessage(input: {
-  gameTitle: string;
-  lines: string[];
-  playerGameLink: string;
+export function buildSettlementWhatsAppMessage(input: {
+  date: Date | string;
+  lines: SettlementLineInput[];
 }) {
-  const summary =
-    input.lines.length > 0 ? input.lines.join("\n") : "No transfers for you in this game.";
+  const dateLabel = formatSettlementDate(input.date);
+  const transferLines = input.lines.map((line) => formatSettlementLine(line));
 
-  return [`My settlement for ${input.gameTitle}:`, summary, input.playerGameLink].join("\n");
+  return [dateLabel, ...transferLines].join("\n");
 }
