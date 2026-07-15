@@ -8,7 +8,7 @@ import { logAudit } from "@/lib/audit";
 import { grantHostRole, requireDbUser, requireRole } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { platformInvites, users } from "@/lib/db/schema";
-import { describeEmailDeliveryIssue, isEmailDeliveryConfigured } from "@/lib/email";
+import { describeEmailDeliveryIssue, shouldUseResendForEmail } from "@/lib/email";
 import { ensureClerkInvitation } from "@/lib/clerk-invitations";
 import { createInviteToken, getAppUrl, getInviteExpiryDate } from "@/lib/invites";
 import { rateLimitSendInvites } from "@/lib/rate-limit";
@@ -120,31 +120,36 @@ export async function createPlatformInviteForEmail({
   });
 
   const inviteLink = getAppUrl(`/invite/${token}`);
-  const emailResult = await sendPlatformInviteNotification({
-    email: normalizedEmail,
-    userId: null,
-    inviterName,
-    inviteLink,
-    targetRole,
-  });
-
-  const emailDelivered = emailResult.status === "sent";
   const clerkResult = await ensureClerkInvitation({
     emailAddress: normalizedEmail,
     redirectUrl: inviteLink,
-    notify: !emailDelivered,
+    notify: true,
   });
+  const clerkDelivered = "emailed" in clerkResult && clerkResult.emailed;
 
+  const emailResult = shouldUseResendForEmail()
+    ? await sendPlatformInviteNotification({
+        email: normalizedEmail,
+        userId: null,
+        inviterName,
+        inviteLink,
+        targetRole,
+      })
+    : ({ status: "skipped", reason: "sandbox_sender" } as const);
+
+  const emailDelivered =
+    clerkDelivered || (emailResult.status === "sent");
   let emailWarning = describeEmailDeliveryIssue(emailResult);
-  if (!emailDelivered && "emailed" in clerkResult && clerkResult.emailed) {
+  if (!emailDelivered) {
+    if ("error" in clerkResult) {
+      emailWarning =
+        "Clerk could not send an invitation email. Copy the invite link and send it manually.";
+    } else {
+      emailWarning =
+        "Invitation email could not be delivered. Copy the invite link and send it manually.";
+    }
+  } else if (clerkDelivered) {
     emailWarning = null;
-  } else if (
-    !emailDelivered &&
-    "error" in clerkResult &&
-    !isEmailDeliveryConfigured()
-  ) {
-    emailWarning =
-      "Email was not sent because RESEND_API_KEY is not configured, and Clerk could not send an invitation email either. Copy the invite link and send it manually.";
   }
 
   return {
@@ -349,27 +354,27 @@ export async function resendPendingInviteEmailAction(inviteId: string) {
   }
 
   const inviteLink = getAppUrl(`/invite/${invite.token}`);
-  const emailResult = await sendPlatformInviteNotification({
-    email: invite.email,
-    userId: null,
-    inviterName: invite.invitedBy.displayName,
-    inviteLink,
-    targetRole: invite.targetRole === "host" ? "host" : "player",
+  const clerkResult = await ensureClerkInvitation({
+    emailAddress: invite.email,
+    redirectUrl: inviteLink,
+    notify: true,
   });
 
-  const emailDelivered = emailResult.status === "sent";
-  if (!emailDelivered) {
-    const clerkResult = await ensureClerkInvitation({
-      emailAddress: invite.email,
-      redirectUrl: inviteLink,
-      notify: true,
-    });
-
-    if ("emailed" in clerkResult && clerkResult.emailed) {
-      return { success: true, message: `Invitation email resent to ${invite.email} via Clerk.` };
-    }
+  if ("emailed" in clerkResult && clerkResult.emailed) {
+    return { success: true, message: `Invitation email resent to ${invite.email} via Clerk.` };
   }
 
+  const emailResult = shouldUseResendForEmail()
+    ? await sendPlatformInviteNotification({
+        email: invite.email,
+        userId: null,
+        inviterName: invite.invitedBy.displayName,
+        inviteLink,
+        targetRole: invite.targetRole === "host" ? "host" : "player",
+      })
+    : ({ status: "skipped", reason: "sandbox_sender" } as const);
+
+  const emailDelivered = emailResult.status === "sent";
   const emailWarning = describeEmailDeliveryIssue(emailResult);
   if (emailWarning && !emailDelivered) {
     return { success: true, warning: emailWarning, inviteLink };
@@ -400,27 +405,27 @@ export async function resendHostPendingInviteEmailAction(inviteId: string) {
   }
 
   const inviteLink = getAppUrl(`/invite/${invite.token}`);
-  const emailResult = await sendPlatformInviteNotification({
-    email: invite.email,
-    userId: null,
-    inviterName: host.displayName,
-    inviteLink,
-    targetRole: "player",
+  const clerkResult = await ensureClerkInvitation({
+    emailAddress: invite.email,
+    redirectUrl: inviteLink,
+    notify: true,
   });
 
-  const emailDelivered = emailResult.status === "sent";
-  if (!emailDelivered) {
-    const clerkResult = await ensureClerkInvitation({
-      emailAddress: invite.email,
-      redirectUrl: inviteLink,
-      notify: true,
-    });
-
-    if ("emailed" in clerkResult && clerkResult.emailed) {
-      return { success: true, message: `Invitation email resent to ${invite.email} via Clerk.` };
-    }
+  if ("emailed" in clerkResult && clerkResult.emailed) {
+    return { success: true, message: `Invitation email resent to ${invite.email} via Clerk.` };
   }
 
+  const emailResult = shouldUseResendForEmail()
+    ? await sendPlatformInviteNotification({
+        email: invite.email,
+        userId: null,
+        inviterName: host.displayName,
+        inviteLink,
+        targetRole: "player",
+      })
+    : ({ status: "skipped", reason: "sandbox_sender" } as const);
+
+  const emailDelivered = emailResult.status === "sent";
   const emailWarning = describeEmailDeliveryIssue(emailResult);
   if (emailWarning && !emailDelivered) {
     return { success: true, warning: emailWarning, inviteLink };

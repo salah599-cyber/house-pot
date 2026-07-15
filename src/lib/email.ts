@@ -8,19 +8,47 @@ type SendEmailInput = {
 
 export type SendEmailResult =
   | { status: "sent" }
-  | { status: "skipped"; reason: "missing_api_key" }
+  | { status: "skipped"; reason: "missing_api_key" | "sandbox_sender" | "in_app_only" }
   | { status: "failed"; reason: string };
 
+function getEmailFromAddress() {
+  return process.env.EMAIL_FROM ?? "House Poker <onboarding@resend.dev>";
+}
+
+export function isResendSandboxSender(from = getEmailFromAddress()) {
+  return from.includes("onboarding@resend.dev");
+}
+
+/** True when Resend can send to arbitrary recipients (verified domain configured). */
+export function shouldUseResendForEmail() {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  if (!apiKey) {
+    return false;
+  }
+
+  return !isResendSandboxSender();
+}
+
+/** Invite emails work via Clerk without a custom domain; Resend is optional. */
+export function isInviteEmailDeliveryConfigured() {
+  return Boolean(process.env.CLERK_SECRET_KEY?.trim()) || shouldUseResendForEmail();
+}
+
+/** @deprecated Use isInviteEmailDeliveryConfigured for invite flows. */
 export function isEmailDeliveryConfigured() {
-  return Boolean(process.env.RESEND_API_KEY?.trim());
+  return isInviteEmailDeliveryConfigured();
 }
 
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
-  const from = process.env.EMAIL_FROM ?? "House Poker <onboarding@resend.dev>";
+  const from = getEmailFromAddress();
 
   if (!apiKey) {
     return { status: "skipped", reason: "missing_api_key" };
+  }
+
+  if (isResendSandboxSender(from)) {
+    return { status: "skipped", reason: "sandbox_sender" };
   }
 
   const resend = new Resend(apiKey);
@@ -59,6 +87,10 @@ export function describeEmailDeliveryIssue(result: SendEmailResult) {
   }
 
   if (result.status === "skipped") {
+    if (result.reason === "in_app_only" || result.reason === "sandbox_sender") {
+      return null;
+    }
+
     return "Email was not sent because RESEND_API_KEY is not configured. Copy the invite link and send it manually.";
   }
 

@@ -358,23 +358,23 @@ async function processGameInvite({
     gameInviteLink: getAppUrl(`/game-invite/${gameInviteToken}`),
   });
 
-  const emailDelivered = emailResult.status === "sent";
-  if (!emailDelivered && !existingUser && platformInviteToken) {
+  let emailDelivered = emailResult.status === "sent";
+  if (!existingUser) {
     const clerkResult = await ensureClerkInvitation({
       emailAddress: email,
       redirectUrl: registrationLink,
       notify: true,
     });
-    if (!("emailed" in clerkResult && clerkResult.emailed)) {
+    if ("emailed" in clerkResult && clerkResult.emailed) {
+      emailDelivered = true;
+    } else if (!emailDelivered) {
       const issue = describeEmailDeliveryIssue(emailResult);
       if (issue) {
         return `${email}: ${issue}`;
       }
-    }
-  } else if (!emailDelivered && !existingUser) {
-    const issue = describeEmailDeliveryIssue(emailResult);
-    if (issue) {
-      return `${email}: ${issue}`;
+      if ("error" in clerkResult) {
+        return `${email}: Clerk could not send an invitation email. Copy the invite link and send it manually.`;
+      }
     }
   }
 

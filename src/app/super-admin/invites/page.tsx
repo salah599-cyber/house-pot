@@ -2,7 +2,7 @@ import { CopyInviteLinkButton } from "@/components/admin/copy-invite-link-button
 import { InviteUserForm } from "@/components/admin/invite-user-form";
 import { ResendInviteEmailButton } from "@/components/admin/resend-invite-email-button";
 import { requireRole } from "@/lib/auth/session";
-import { isEmailDeliveryConfigured } from "@/lib/email";
+import { isInviteEmailDeliveryConfigured } from "@/lib/email";
 import { formatDateTime } from "@/lib/dates";
 import { getAppUrl } from "@/lib/invites";
 import { Badge } from "@/components/ui/badge";
@@ -14,21 +14,18 @@ export const dynamic = "force-dynamic";
 export default async function SuperAdminInvitesPage() {
   await requireRole("super_admin");
   const pendingInvites = await getPendingPlatformInvites();
-  const emailConfigured = isEmailDeliveryConfigured();
+  const emailConfigured = isInviteEmailDeliveryConfigured();
 
   return (
     <div className="space-y-6">
       {!emailConfigured ? (
         <Card className="border-amber-500/30 bg-amber-500/5">
           <CardHeader>
-            <CardTitle className="text-base">Email delivery is not configured</CardTitle>
+            <CardTitle className="text-base">Invite email is not configured</CardTitle>
             <CardDescription>
-              Invites are saved, but branded emails need{" "}
-              <code className="text-xs">RESEND_API_KEY</code> in Vercel environment variables.
-              Without Resend, House Poker falls back to Clerk invitation emails when possible.
-              Use a verified sender in <code className="text-xs">EMAIL_FROM</code> (for example{" "}
-              <code className="text-xs">House Poker &lt;invites@yourdomain.com&gt;</code>).
-              Until then, copy the invite link from Pending invites and send it manually.
+              Invites are saved in House Poker. Clerk sends invitation emails to new users when
+              configured. Registered players see invites on their dashboard. If email fails, copy
+              the invite link from Pending invites and send it manually.
             </CardDescription>
           </CardHeader>
         </Card>

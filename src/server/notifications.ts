@@ -1,5 +1,10 @@
 import { db } from "@/lib/db";
-import { emailTemplate, sendEmail, type SendEmailResult } from "@/lib/email";
+import {
+  emailTemplate,
+  sendEmail,
+  shouldUseResendForEmail,
+  type SendEmailResult,
+} from "@/lib/email";
 import { notifications } from "@/lib/db/schema";
 
 type NotificationEmailInput = {
@@ -23,8 +28,12 @@ export async function createNotification(input: NotificationEmailInput): Promise
     link: input.link,
   });
 
-  if (!input.email) {
-    return { status: "skipped", reason: "missing_api_key" };
+  if (!input.email || input.userId) {
+    return { status: "skipped", reason: "in_app_only" };
+  }
+
+  if (!shouldUseResendForEmail()) {
+    return { status: "skipped", reason: "sandbox_sender" };
   }
 
   return sendEmail({

@@ -3,7 +3,7 @@ import { InvitePlayersToPlatformForm } from "@/components/host/invite-players-to
 import { HostResendInviteEmailButton } from "@/components/host/host-resend-invite-email-button";
 import { requireRole } from "@/lib/auth/session";
 import { formatDateTime } from "@/lib/dates";
-import { isEmailDeliveryConfigured } from "@/lib/email";
+import { isInviteEmailDeliveryConfigured } from "@/lib/email";
 import { getAppUrl } from "@/lib/invites";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPendingPlatformInvitesForHost } from "@/server/actions/invites";
@@ -13,20 +13,17 @@ export const dynamic = "force-dynamic";
 export default async function HostInvitePage() {
   await requireRole("host");
   const pendingInvites = await getPendingPlatformInvitesForHost();
-  const emailConfigured = isEmailDeliveryConfigured();
+  const emailConfigured = isInviteEmailDeliveryConfigured();
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       {!emailConfigured ? (
         <Card className="border-amber-500/30 bg-amber-500/5">
           <CardHeader>
-            <CardTitle className="text-base">Resend email is not configured</CardTitle>
+            <CardTitle className="text-base">Invite email is not configured</CardTitle>
             <CardDescription>
-              House Poker will try to send invitation emails through Clerk when{" "}
-              <code className="text-xs">RESEND_API_KEY</code> is missing. For branded emails,
-              add <code className="text-xs">RESEND_API_KEY</code> and a verified{" "}
-              <code className="text-xs">EMAIL_FROM</code> in Vercel. Until then, copy links from
-              Pending invites below.
+              New players are invited through Clerk when possible. If Clerk cannot send email,
+              copy links from Pending invites below and share them manually.
             </CardDescription>
           </CardHeader>
         </Card>
