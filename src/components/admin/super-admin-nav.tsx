@@ -17,7 +17,7 @@ export function SuperAdminNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex flex-wrap gap-2">
+    <nav className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0">
       {links.map((link) => {
         const active = link.exact ? pathname === link.href : pathname.startsWith(link.href);
         return (
@@ -25,7 +25,7 @@ export function SuperAdminNav() {
             key={link.href}
             href={link.href}
             className={cn(
-              "rounded-full px-4 py-2 text-sm transition",
+              "shrink-0 rounded-full px-4 py-2.5 text-sm transition",
               active
                 ? "bg-primary text-primary-foreground"
                 : "bg-muted text-muted-foreground hover:text-foreground",

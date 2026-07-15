@@ -36,20 +36,20 @@ export default async function PlayerGamePage({ params }: PlayerGamePageProps) {
   const myTotals = calculateParticipantTotals(participant.id, myTransactions);
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-10">
+    <div className="page-shell max-w-4xl">
       {game.status === "active" ? <LiveSessionPoller /> : null}
 
       <div>
         <div className="mb-2 flex gap-2">
           <Badge variant="outline">{game.status}</Badge>
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight">{game.title}</h1>
+        <h1 className="page-title">{game.title}</h1>
         <p className="text-muted-foreground">
           Hosted by {game.host.displayName} · {formatDateTime(game.scheduledAt)}
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Card>
           <CardHeader>
             <CardDescription>Your status</CardDescription>

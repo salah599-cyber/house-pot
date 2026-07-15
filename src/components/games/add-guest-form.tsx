@@ -13,7 +13,7 @@ export function AddGuestForm({ gameId }: { gameId: string }) {
 
   return (
     <form
-      className="flex gap-2"
+      className="flex flex-col gap-2 sm:flex-row sm:items-center"
       action={(formData) =>
         startTransition(async () => {
           await addGuestPlayerAction(gameId, formData);
@@ -21,8 +21,8 @@ export function AddGuestForm({ gameId }: { gameId: string }) {
         })
       }
     >
-      <Input name="guestName" placeholder="Guest name (no account)" required />
-      <Button type="submit" size="sm" disabled={isPending}>
+      <Input name="guestName" placeholder="Guest name (no account)" required className="min-h-11" />
+      <Button type="submit" disabled={isPending} className="min-h-11 w-full sm:w-auto">
         Add guest
       </Button>
     </form>

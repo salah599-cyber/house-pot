@@ -13,22 +13,22 @@ export default async function PlayerDashboardPage() {
   const { participations, pendingInvites, notifications } = await getPlayerDashboardData();
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="page-shell">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">My poker dashboard</h1>
-          <p className="text-muted-foreground">
+          <h1 className="page-title">My poker dashboard</h1>
+          <p className="text-sm text-muted-foreground sm:text-base">
             You only see your games, notifications, and settlement details.
           </p>
         </div>
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" className="min-h-11 w-full sm:w-auto">
           <Link href="/player/stats">View stats</Link>
         </Button>
       </div>
 
       <section className="grid gap-4">
         <Card>
-          <CardHeader className="flex-row items-center justify-between">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <CardTitle>Notifications</CardTitle>
               <CardDescription>Game invites and registration prompts from hosts.</CardDescription>
@@ -67,7 +67,7 @@ export default async function PlayerDashboardPage() {
               pendingInvites.map((invite) => (
                 <div
                   key={invite.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4"
+                  className="flex flex-col gap-3 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
                     <p className="font-medium">{invite.game.title}</p>
@@ -75,7 +75,7 @@ export default async function PlayerDashboardPage() {
                       {formatDateTime(invite.game.scheduledAt)}
                     </p>
                   </div>
-                  <Button asChild size="sm">
+                  <Button asChild className="min-h-11 w-full sm:w-auto">
                     <Link href={`/game-invite/${invite.token}`}>Review invite</Link>
                   </Button>
                 </div>
@@ -95,7 +95,7 @@ export default async function PlayerDashboardPage() {
               participations.map((participation) => (
                 <div
                   key={participation.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4"
+                  className="flex flex-col gap-3 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
                     <p className="font-medium">{participation.game.title}</p>
@@ -104,9 +104,11 @@ export default async function PlayerDashboardPage() {
                       {formatMoney(participation.game.defaultBuyIn, participation.game.currency)}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{participation.status}</Badge>
-                    <Button asChild size="sm" variant="outline">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Badge variant="outline" className="w-fit">
+                      {participation.status}
+                    </Badge>
+                    <Button asChild variant="outline" className="min-h-11 w-full sm:w-auto">
                       <Link href={`/player/games/${participation.gameId}`}>My details</Link>
                     </Button>
                   </div>

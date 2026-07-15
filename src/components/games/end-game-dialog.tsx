@@ -68,9 +68,11 @@ export function EndGameDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="destructive">End game & settle</Button>
+        <Button variant="destructive" className="min-h-11 flex-1 sm:flex-none">
+          End game & settle
+        </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] w-[calc(100%-1rem)] max-w-[calc(100%-1rem)] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>End game and generate settlements</DialogTitle>
           <DialogDescription>

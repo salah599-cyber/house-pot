@@ -13,15 +13,15 @@ export default async function HostDashboardPage() {
   const games = await getHostGames();
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10">
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="page-shell">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Host dashboard</h1>
-          <p className="text-muted-foreground">
+          <h1 className="page-title">Host dashboard</h1>
+          <p className="text-sm text-muted-foreground sm:text-base">
             Manage your cash games, invites, and seated players.
           </p>
         </div>
-        <Button asChild>
+        <Button asChild className="min-h-11 w-full sm:w-auto">
           <Link href="/host/games/new">New game</Link>
         </Button>
       </div>
@@ -42,7 +42,7 @@ export default async function HostDashboardPage() {
 
             return (
               <Card key={game.id}>
-                <CardHeader className="flex-row items-center justify-between">
+                <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <CardTitle>{game.title}</CardTitle>
                     <CardDescription>
@@ -50,22 +50,24 @@ export default async function HostDashboardPage() {
                       {formatMoney(game.defaultBuyIn, game.currency)} buy-in
                     </CardDescription>
                   </div>
-                  <Badge>{game.status}</Badge>
+                  <Badge className="w-fit">{game.status}</Badge>
                 </CardHeader>
-                <CardContent className="flex flex-wrap items-center justify-between gap-3">
+                <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <p className="text-sm text-muted-foreground">
                     {confirmed}/{game.maxPlayers} seats confirmed
                   </p>
-                  <Button asChild variant="outline" size="sm">
-                    <Link href={`/host/games/${game.id}`}>Manage</Link>
-                  </Button>
-                  {game.status !== "open" ? (
-                    <Button asChild size="sm">
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Button asChild variant="outline" className="min-h-11 w-full sm:w-auto">
+                      <Link href={`/host/games/${game.id}`}>Manage</Link>
+                    </Button>
+                    {game.status !== "open" ? (
+                      <Button asChild className="min-h-11 w-full sm:w-auto">
                       <Link href={`/host/games/${game.id}/live`}>
                         {game.status === "active" ? "Live" : "Results"}
                       </Link>
                     </Button>
-                  ) : null}
+                    ) : null}
+                  </div>
                 </CardContent>
               </Card>
             );

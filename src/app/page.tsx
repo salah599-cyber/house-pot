@@ -5,20 +5,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export default function HomePage() {
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-16">
+    <div className="page-shell max-w-5xl py-10 sm:py-16">
       <section className="space-y-4 text-center">
-        <p className="text-sm font-medium uppercase tracking-[0.2em] text-emerald-400">
+        <p className="text-xs font-medium uppercase tracking-[0.2em] text-emerald-400 sm:text-sm">
           Invite-only home games
         </p>
-        <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
           Run your house poker nights without the spreadsheet chaos
         </h1>
-        <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+        <p className="mx-auto max-w-2xl text-base text-muted-foreground sm:text-lg">
           Hosts manage cash games, invite players to register, and track buy-ins.
           Players only see their own results and settlements.
         </p>
-        <div className="flex flex-wrap justify-center gap-3">
-          <Button asChild>
+        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center">
+          <Button asChild className="min-h-11 w-full sm:w-auto">
             <Link href="/sign-in">Sign in</Link>
           </Button>
         </div>
