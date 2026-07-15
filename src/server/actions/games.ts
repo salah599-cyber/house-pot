@@ -213,9 +213,22 @@ export async function invitePlayersToGame(
     });
 
     if (existingUser) {
-      warnings.push(
-        `${email} is already registered. Select them from Registered players instead.`,
-      );
+      const warning = await processGameInvite({
+        gameId,
+        email,
+        existingUser,
+        invitedByUserId,
+        hostName,
+        gameTitle,
+        currentUserEmail: user.email.toLowerCase(),
+      });
+
+      if (warning === null) {
+        invitedEmails.add(email);
+        sent += 1;
+      } else if (warning) {
+        warnings.push(warning);
+      }
       continue;
     }
 
@@ -358,12 +371,7 @@ async function processGameInvite({
         return `${email}: ${issue}`;
       }
     }
-  } else if (!emailDelivered && existingUser) {
-    const issue = describeEmailDeliveryIssue(emailResult);
-    if (issue) {
-      return `${email}: ${issue} They can still see the invite in their player dashboard.`;
-    }
-  } else if (!emailDelivered) {
+  } else if (!emailDelivered && !existingUser) {
     const issue = describeEmailDeliveryIssue(emailResult);
     if (issue) {
       return `${email}: ${issue}`;
