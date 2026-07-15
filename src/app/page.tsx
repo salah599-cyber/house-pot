@@ -1,39 +1,58 @@
-export default function Home() {
+import Link from "next/link";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+export default function HomePage() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center bg-zinc-950 px-6 py-24 text-zinc-50">
-      <main className="flex w-full max-w-2xl flex-col items-center gap-10 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 text-3xl ring-1 ring-emerald-500/30">
-          🏠
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-16">
+      <section className="space-y-4 text-center">
+        <p className="text-sm font-medium uppercase tracking-[0.2em] text-emerald-400">
+          Invite-only home games
+        </p>
+        <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
+          Run your house poker nights without the spreadsheet chaos
+        </h1>
+        <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+          Hosts manage cash games, invite players to register, and track buy-ins.
+          Players only see their own results and settlements.
+        </p>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Button asChild>
+            <Link href="/sign-in">Sign in</Link>
+          </Button>
         </div>
+      </section>
 
-        <div className="space-y-4">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-emerald-400">
-            Shared living, simplified
-          </p>
-          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-            House Pot
-          </h1>
-          <p className="mx-auto max-w-lg text-lg leading-8 text-zinc-400">
-            Split rent, utilities, and groceries with roommates. Track who paid
-            what and settle up without the spreadsheet chaos.
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <button
-            type="button"
-            className="rounded-full bg-emerald-500 px-6 py-3 text-sm font-medium text-zinc-950 transition hover:bg-emerald-400"
-          >
-            Get started
-          </button>
-          <button
-            type="button"
-            className="rounded-full border border-zinc-700 px-6 py-3 text-sm font-medium text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-900"
-          >
-            View demo
-          </button>
-        </div>
-      </main>
+      <section className="grid gap-4 md:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle>Hosts</CardTitle>
+            <CardDescription>Create games, invite players, manage seats.</CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Default 8-player sessions with $20 or $50 buy-ins. Expand to 9 when needed.
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Players</CardTitle>
+            <CardDescription>Invite-only registration and private dashboards.</CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Confirm your spot online. First 7 players plus the host fill the table.
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Settlements</CardTitle>
+            <CardDescription>See who you owe and mark payments settled.</CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm text-muted-foreground">
+            Players only see their own ledger details and settlement pairs.
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 }
