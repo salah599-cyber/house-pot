@@ -23,8 +23,9 @@ export default async function SuperAdminInvitesPage() {
           <CardHeader>
             <CardTitle className="text-base">Email delivery is not configured</CardTitle>
             <CardDescription>
-              Invites are saved, but no email is sent until you add{" "}
+              Invites are saved, but branded emails need{" "}
               <code className="text-xs">RESEND_API_KEY</code> in Vercel environment variables.
+              Without Resend, House Poker falls back to Clerk invitation emails when possible.
               Use a verified sender in <code className="text-xs">EMAIL_FROM</code> (for example{" "}
               <code className="text-xs">House Poker &lt;invites@yourdomain.com&gt;</code>).
               Until then, copy the invite link from Pending invites and send it manually.

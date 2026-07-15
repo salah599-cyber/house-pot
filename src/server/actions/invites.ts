@@ -8,7 +8,7 @@ import { logAudit } from "@/lib/audit";
 import { grantHostRole, requireDbUser, requireRole } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { platformInvites, users } from "@/lib/db/schema";
-import { describeEmailDeliveryIssue } from "@/lib/email";
+import { describeEmailDeliveryIssue, isEmailDeliveryConfigured } from "@/lib/email";
 import { ensureClerkInvitation } from "@/lib/clerk-invitations";
 import { createInviteToken, getAppUrl, getInviteExpiryDate } from "@/lib/invites";
 import { rateLimitSendInvites } from "@/lib/rate-limit";
@@ -37,6 +37,7 @@ type PlatformInviteResult =
       token: string;
       inviteLink: string;
       emailWarning: string | null;
+      emailDelivered: boolean;
     }
   | { error: string };
 
@@ -127,17 +128,32 @@ export async function createPlatformInviteForEmail({
     targetRole,
   });
 
-  await ensureClerkInvitation({
+  const emailDelivered = emailResult.status === "sent";
+  const clerkResult = await ensureClerkInvitation({
     emailAddress: normalizedEmail,
     redirectUrl: inviteLink,
+    notify: !emailDelivered,
   });
+
+  let emailWarning = describeEmailDeliveryIssue(emailResult);
+  if (!emailDelivered && "emailed" in clerkResult && clerkResult.emailed) {
+    emailWarning = null;
+  } else if (
+    !emailDelivered &&
+    "error" in clerkResult &&
+    !isEmailDeliveryConfigured()
+  ) {
+    emailWarning =
+      "Email was not sent because RESEND_API_KEY is not configured, and Clerk could not send an invitation email either. Copy the invite link and send it manually.";
+  }
 
   return {
     success: true as const,
     immediate: false as const,
     token,
     inviteLink,
-    emailWarning: describeEmailDeliveryIssue(emailResult),
+    emailWarning,
+    emailDelivered: emailDelivered || ("emailed" in clerkResult && clerkResult.emailed),
   };
 }
 
@@ -213,7 +229,9 @@ export async function inviteUsersByEmailAction(formData: FormData): Promise<Invi
     success: true,
     message: result.immediate
       ? `Host access granted to ${parsed.data.email}.`
-      : `${parsed.data.targetRole === "host" ? "Host" : "Player"} invite sent to ${parsed.data.email}.`,
+      : !result.immediate && "emailDelivered" in result && result.emailDelivered
+        ? `${parsed.data.targetRole === "host" ? "Host" : "Player"} invite sent to ${parsed.data.email}.`
+        : `Invite created for ${parsed.data.email}, but no email was delivered.`,
     inviteLink: result.inviteLink,
   };
 }
@@ -236,6 +254,7 @@ export async function invitePlayersToPlatformAction(
   const errors: string[] = [];
   let sent = 0;
   let emailWarnings = 0;
+  let emailsDelivered = 0;
 
   for (const email of emails) {
     if (email === host.email.toLowerCase()) continue;
@@ -254,6 +273,9 @@ export async function invitePlayersToPlatformAction(
 
     if ("emailWarning" in result && result.emailWarning) {
       emailWarnings += 1;
+    }
+    if ("emailDelivered" in result && result.emailDelivered) {
+      emailsDelivered += 1;
     }
 
     await logAudit({
@@ -284,15 +306,24 @@ export async function invitePlayersToPlatformAction(
     return {
       success: true,
       message:
-        sent === 1 ? "Invite created successfully." : `Created ${sent} invites successfully.`,
+        emailsDelivered > 0
+          ? `Created ${sent} invite(s). ${emailsDelivered} email(s) sent.`
+          : sent === 1
+            ? "Invite created successfully."
+            : `Created ${sent} invites successfully.`,
       warning:
-        "Email delivery is not configured or failed. Copy each invite link from Pending invites or configure RESEND_API_KEY in Vercel.",
+        "Some invitation emails could not be delivered. Copy each invite link from Pending invites below, or configure RESEND_API_KEY in Vercel.",
     };
   }
 
   return {
     success: true,
-    message: sent === 1 ? "Invite sent successfully." : `Sent ${sent} invites successfully.`,
+    message:
+      sent === 1
+        ? emailsDelivered === 1
+          ? "Invite email sent successfully."
+          : "Invite created successfully."
+        : `Sent ${sent} invite(s).`,
   };
 }
 
@@ -326,12 +357,90 @@ export async function resendPendingInviteEmailAction(inviteId: string) {
     targetRole: invite.targetRole === "host" ? "host" : "player",
   });
 
+  const emailDelivered = emailResult.status === "sent";
+  if (!emailDelivered) {
+    const clerkResult = await ensureClerkInvitation({
+      emailAddress: invite.email,
+      redirectUrl: inviteLink,
+      notify: true,
+    });
+
+    if ("emailed" in clerkResult && clerkResult.emailed) {
+      return { success: true, message: `Invitation email resent to ${invite.email} via Clerk.` };
+    }
+  }
+
   const emailWarning = describeEmailDeliveryIssue(emailResult);
-  if (emailWarning) {
+  if (emailWarning && !emailDelivered) {
     return { success: true, warning: emailWarning, inviteLink };
   }
 
   return { success: true, message: `Invite email resent to ${invite.email}.` };
+}
+
+export async function resendHostPendingInviteEmailAction(inviteId: string) {
+  const host = await requireRole("host");
+
+  const limited = await rateLimitSendInvites(host.id);
+  if (!limited.success) {
+    return { error: limited.error };
+  }
+
+  const invite = await db.query.platformInvites.findFirst({
+    where: and(
+      eq(platformInvites.id, inviteId),
+      eq(platformInvites.invitedByUserId, host.id),
+      eq(platformInvites.status, "pending"),
+      gt(platformInvites.expiresAt, new Date()),
+    ),
+  });
+
+  if (!invite) {
+    return { error: "Invite not found or expired." };
+  }
+
+  const inviteLink = getAppUrl(`/invite/${invite.token}`);
+  const emailResult = await sendPlatformInviteNotification({
+    email: invite.email,
+    userId: null,
+    inviterName: host.displayName,
+    inviteLink,
+    targetRole: "player",
+  });
+
+  const emailDelivered = emailResult.status === "sent";
+  if (!emailDelivered) {
+    const clerkResult = await ensureClerkInvitation({
+      emailAddress: invite.email,
+      redirectUrl: inviteLink,
+      notify: true,
+    });
+
+    if ("emailed" in clerkResult && clerkResult.emailed) {
+      return { success: true, message: `Invitation email resent to ${invite.email} via Clerk.` };
+    }
+  }
+
+  const emailWarning = describeEmailDeliveryIssue(emailResult);
+  if (emailWarning && !emailDelivered) {
+    return { success: true, warning: emailWarning, inviteLink };
+  }
+
+  return { success: true, message: `Invite email resent to ${invite.email}.` };
+}
+
+export async function getPendingPlatformInvitesForHost() {
+  const host = await requireRole("host");
+
+  return db.query.platformInvites.findMany({
+    where: and(
+      eq(platformInvites.invitedByUserId, host.id),
+      eq(platformInvites.status, "pending"),
+      gt(platformInvites.expiresAt, new Date()),
+    ),
+    orderBy: [desc(platformInvites.createdAt)],
+    limit: 50,
+  });
 }
 
 export async function getPendingPlatformInvites() {

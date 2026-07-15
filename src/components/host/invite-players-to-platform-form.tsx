@@ -1,56 +1,66 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
+import { FormFeedback } from "@/components/admin/form-feedback";
 import { invitePlayersToPlatformAction } from "@/server/actions/invites";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
+type FeedbackState = {
+  type: "success" | "warning" | "error";
+  message: string;
+} | null;
+
 export function InvitePlayersToPlatformForm() {
   const router = useRouter();
-  const formRef = useRef<HTMLFormElement>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [feedback, setFeedback] = useState<FeedbackState>(null);
 
   return (
     <form
-      ref={formRef}
       className="space-y-3"
       action={(formData) =>
         startTransition(async () => {
-          setError(null);
-          setMessage(null);
+          setFeedback(null);
 
           try {
             const result = await invitePlayersToPlatformAction(formData);
 
-            if ("error" in result) {
-              setError(result.error);
+            if ("error" in result && result.error) {
+              setFeedback({ type: "error", message: result.error });
               return;
             }
 
-            setMessage(result.message);
-            formRef.current?.reset();
+            if ("warning" in result && result.warning) {
+              setFeedback({
+                type: "warning",
+                message: `${result.message} ${result.warning}`,
+              });
+            } else {
+              setFeedback({
+                type: "success",
+                message: ("message" in result && result.message) || "Invites sent.",
+              });
+            }
+
             router.refresh();
           } catch {
-            setError("Something went wrong while sending invites. Please try again.");
+            setFeedback({
+              type: "error",
+              message: "Something went wrong while sending invites. Please try again.",
+            });
           }
         })
       }
     >
+      {feedback ? <FormFeedback type={feedback.type} message={feedback.message} /> : null}
       <Textarea
         name="inviteEmails"
         placeholder="Add emails separated by commas or new lines"
         rows={4}
       />
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      {message ? (
-        <p className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-300">
-          {message}
-        </p>
-      ) : null}
       <Button type="submit" disabled={isPending}>
         {isPending ? "Sending..." : "Send platform invites"}
       </Button>
