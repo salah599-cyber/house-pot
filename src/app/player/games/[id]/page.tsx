@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { getPlayerGameDetail } from "@/server/queries/players";
+import { getPlayerGameDetail } from "@/lib/queries/players";
 
 type PlayerGamePageProps = {
   params: Promise<{ id: string }>;

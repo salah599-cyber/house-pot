@@ -5,7 +5,7 @@ import Link from "next/link";
 import { HostGameCard } from "@/components/host/host-game-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getHostGames } from "@/server/queries/players";
+import { getHostGames } from "@/lib/queries/players";
 
 export default async function HostDashboardPage() {
   const games = await getHostGames();

@@ -25,6 +25,7 @@ import {
 import { createInviteToken, getAppUrl, getInviteExpiryDate } from "@/lib/invites";
 import { createJoinCode } from "@/lib/join-code";
 import { logAudit } from "@/lib/audit";
+import { rateLimitSendInvites } from "@/lib/rate-limit";
 import { sendGameInviteNotifications } from "@/server/notifications";
 
 const createGameSchema = z.object({
@@ -115,6 +116,11 @@ export async function inviteEmailsToGame(
     return { error: "You can only invite players to your own games." };
   }
 
+  const limited = await rateLimitSendInvites(user.id);
+  if (!limited.success) {
+    return { error: limited.error };
+  }
+
   const uniqueEmails = [...new Set(emails.map((email) => email.toLowerCase()))];
 
   for (const email of uniqueEmails) {
@@ -149,6 +155,7 @@ export async function inviteEmailsToGame(
       userId: existingUser?.id ?? null,
       platformInviteId,
       token: gameInviteToken,
+      expiresAt: getInviteExpiryDate(),
     });
 
     const existingParticipant = await db.query.gameParticipants.findFirst({

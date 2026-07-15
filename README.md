@@ -57,6 +57,8 @@ Copy `.env.example` to `.env.local` and fill in:
 - **Clerk** keys from [dashboard.clerk.com](https://dashboard.clerk.com)
 - **DATABASE_URL** from Neon (Vercel integration recommended)
 - **SUPER_ADMIN_EMAIL** — your email (grants super admin + host on first login)
+- **SUPER_ADMIN_SETUP_TOKEN** — required in production for super-admin bootstrap (`/onboarding?setup=...`)
+- **UPSTASH_REDIS_REST_URL** / **UPSTASH_REDIS_REST_TOKEN** — rate limiting (Vercel Upstash integration)
 - **NEXT_PUBLIC_APP_URL** — `http://localhost:3000` locally
 - **RESEND_API_KEY** (optional) — enables email notifications
 - **EMAIL_FROM** (optional) — sender address for Resend

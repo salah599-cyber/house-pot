@@ -1,9 +1,8 @@
-"use server";
-
 import { and, desc, eq, or } from "drizzle-orm";
 
 import { isSuperAdmin } from "@/lib/auth/roles";
 import { getUserRoles, requireDbUser } from "@/lib/auth/session";
+import { isGameInviteActive } from "@/lib/game-invites";
 import { db } from "@/lib/db";
 import {
   gameInvites,
@@ -42,7 +41,7 @@ export async function getPlayerDashboardData() {
     orderBy: (fields, { desc: descOrder }) => [descOrder(fields.createdAt)],
   });
 
-  const pendingInvites = await db.query.gameInvites.findMany({
+  const pendingInviteRows = await db.query.gameInvites.findMany({
     where: and(
       eq(gameInvites.email, user.email),
       or(eq(gameInvites.status, "pending"), eq(gameInvites.status, "registered")),
@@ -52,6 +51,8 @@ export async function getPlayerDashboardData() {
     },
     orderBy: [desc(gameInvites.sentAt)],
   });
+
+  const pendingInvites = pendingInviteRows.filter((invite) => isGameInviteActive(invite));
 
   const userNotifications = await db.query.notifications.findMany({
     where: or(eq(notifications.userId, user.id), eq(notifications.email, user.email)),
@@ -120,7 +121,6 @@ export async function getPlayerGameDetail(gameId: string) {
     mySettlements,
   };
 }
-
 
 export async function getSuperAdminOverview() {
   const user = await requireDbUser();

@@ -18,7 +18,7 @@ export default async function GameInvitePage({ params }: GameInvitePageProps) {
   const { token } = await params;
   const result = await getGameInviteForUser(token, user.id, user.email);
 
-  if (result.status === "not_found") {
+  if (result.status === "not_found" || result.status === "expired") {
     notFound();
   }
 

@@ -7,6 +7,10 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === "production" && !process.env.CLERK_WEBHOOK_SIGNING_SECRET) {
+    return new Response("Webhook not configured", { status: 503 });
+  }
+
   let event;
 
   try {

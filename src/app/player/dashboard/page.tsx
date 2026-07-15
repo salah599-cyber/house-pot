@@ -6,7 +6,7 @@ import { requireDbUser } from "@/lib/auth/session";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getPlayerDashboardData } from "@/server/queries/players";
+import { getPlayerDashboardData } from "@/lib/queries/players";
 
 export default async function PlayerDashboardPage() {
   await requireDbUser();

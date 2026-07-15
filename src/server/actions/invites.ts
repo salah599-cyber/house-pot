@@ -9,6 +9,7 @@ import { grantHostRole, requireDbUser, requireRole } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { platformInvites, users } from "@/lib/db/schema";
 import { createInviteToken, getAppUrl, getInviteExpiryDate } from "@/lib/invites";
+import { rateLimitSendInvites } from "@/lib/rate-limit";
 import { sendPlatformInviteNotification } from "@/server/notifications";
 
 const inviteEmailSchema = z.object({
@@ -103,6 +104,11 @@ export async function createPlatformInviteForEmail({
 export async function inviteUsersByEmailAction(formData: FormData) {
   const admin = await requireRole("super_admin");
 
+  const limited = await rateLimitSendInvites(admin.id);
+  if (!limited.success) {
+    return { error: limited.error };
+  }
+
   const parsed = inviteEmailSchema.safeParse({
     email: String(formData.get("email") ?? "").trim(),
     targetRole: String(formData.get("targetRole") ?? "player"),
@@ -156,6 +162,11 @@ export async function inviteUsersByEmailAction(formData: FormData) {
 
 export async function invitePlayersToPlatformAction(formData: FormData) {
   const host = await requireRole("host");
+
+  const limited = await rateLimitSendInvites(host.id);
+  if (!limited.success) {
+    return { error: limited.error };
+  }
 
   const emails = parseInviteEmails(String(formData.get("inviteEmails") ?? ""));
   if (emails.length === 0) {

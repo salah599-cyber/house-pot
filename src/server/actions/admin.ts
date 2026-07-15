@@ -188,9 +188,11 @@ export async function getAdminDashboardStats() {
 export async function getAuditLogs(limit = 100) {
   await requireRole("super_admin");
 
+  const cappedLimit = Math.min(Math.max(1, limit), 200);
+
   return db.query.auditLogs.findMany({
     orderBy: [desc(auditLogs.createdAt)],
-    limit,
+    limit: cappedLimit,
     with: { actor: true },
   });
 }

@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import { assertGameHost } from "@/lib/auth/permissions";
 import { getUserRoles, grantPlayerRole, requireDbUser } from "@/lib/auth/session";
+import { isGameInviteActive, isGameInviteExpired } from "@/lib/game-invites";
 import { db } from "@/lib/db";
 import { gameInvites, gameParticipants, games } from "@/lib/db/schema";
 
@@ -75,7 +76,13 @@ export async function confirmGameSpotAction(token: string) {
     with: { game: true },
   });
 
-  if (!invite || invite.status === "expired" || invite.status === "declined") {
+  if (!invite || !isGameInviteActive(invite)) {
+    if (invite && isGameInviteExpired(invite) && invite.status !== "expired") {
+      await db
+        .update(gameInvites)
+        .set({ status: "expired" })
+        .where(eq(gameInvites.id, invite.id));
+    }
     return { error: "This game invite is no longer valid." };
   }
 
@@ -151,6 +158,10 @@ export async function declineGameInviteAction(token: string) {
 
   if (!invite || invite.email.toLowerCase() !== user.email.toLowerCase()) {
     return { error: "Invalid invite." };
+  }
+
+  if (!isGameInviteActive(invite)) {
+    return { error: "This game invite is no longer valid." };
   }
 
   await db

@@ -1,6 +1,7 @@
 import { and, eq, or } from "drizzle-orm";
 
 import { isHost, isSuperAdmin } from "@/lib/auth/roles";
+import { isGameInviteActive } from "@/lib/game-invites";
 import { db } from "@/lib/db";
 import { gameInvites, games, type Role } from "@/lib/db/schema";
 
@@ -34,7 +35,7 @@ export async function getGameForJoinCode(
     ),
   });
 
-  if (!invite) {
+  if (!invite || !isGameInviteActive(invite)) {
     return null;
   }
 
@@ -57,8 +58,12 @@ export async function getGameInviteForUser(token: string, userId: string, email:
     return { status: "not_found" as const };
   }
 
+  if (!isGameInviteActive(invite)) {
+    return { status: "expired" as const };
+  }
+
   if (invite.email.toLowerCase() !== email.toLowerCase()) {
-    return { status: "wrong_account" as const, invitedEmail: invite.email };
+    return { status: "wrong_account" as const };
   }
 
   return { status: "ok" as const, invite };

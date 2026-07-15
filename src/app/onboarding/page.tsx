@@ -3,12 +3,12 @@ import { redirect } from "next/navigation";
 import { completeOnboardingAction } from "@/server/actions/onboarding";
 
 type OnboardingPageProps = {
-  searchParams: Promise<{ invite?: string; game?: string }>;
+  searchParams: Promise<{ invite?: string; game?: string; setup?: string }>;
 };
 
 export default async function OnboardingPage({ searchParams }: OnboardingPageProps) {
-  const { invite, game } = await searchParams;
-  const result = await completeOnboardingAction(invite, game);
+  const { invite, game, setup } = await searchParams;
+  const result = await completeOnboardingAction(invite, game, setup);
 
   if (result && "error" in result) {
     return (

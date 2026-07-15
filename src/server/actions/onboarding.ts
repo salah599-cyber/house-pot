@@ -20,7 +20,11 @@ import { db } from "@/lib/db";
 import { platformInvites, users } from "@/lib/db/schema";
 import { getPlatformInviteByToken } from "@/lib/queries/invites";
 
-export async function completeOnboardingAction(inviteToken?: string, gameToken?: string) {
+export async function completeOnboardingAction(
+  inviteToken?: string,
+  gameToken?: string,
+  setupToken?: string,
+) {
   const { auth, currentUser } = await import("@clerk/nextjs/server");
   const { isAuthenticated, userId } = await auth();
 
@@ -73,9 +77,20 @@ export async function completeOnboardingAction(inviteToken?: string, gameToken?:
   }
 
   const superAdminEmail = process.env.SUPER_ADMIN_EMAIL?.toLowerCase();
-  const isSuperAdminSeed = superAdminEmail && email === superAdminEmail;
+  const requiredSetupToken = process.env.SUPER_ADMIN_SETUP_TOKEN;
+  const emailMatchesSuperAdmin = Boolean(superAdminEmail && email === superAdminEmail);
+  const setupTokenValid =
+    !requiredSetupToken || (setupToken && setupToken === requiredSetupToken);
+  const isSuperAdminSeed = emailMatchesSuperAdmin && setupTokenValid;
 
   if (!inviteAccepted && !isSuperAdminSeed) {
+    if (emailMatchesSuperAdmin && requiredSetupToken && !setupTokenValid) {
+      return {
+        error:
+          "Super admin setup requires a valid setup token. Use the onboarding link provided during deployment.",
+      };
+    }
+
     return {
       error:
         "House Poker is invite-only. Ask a host for an invitation link before registering.",

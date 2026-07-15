@@ -160,6 +160,7 @@ export const gameInvites = pgTable("game_invites", {
   token: text("token").notNull().unique(),
   status: gameInviteStatusEnum("status").notNull().default("pending"),
   sentAt: timestamp("sent_at", { withTimezone: true }).defaultNow().notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
