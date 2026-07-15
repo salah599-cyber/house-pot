@@ -166,22 +166,6 @@ export const gameInvitesRelations = relations(gameInvites, ({ one }) => ({
   user: one(users, { fields: [gameInvites.userId], references: [users.id] }),
 }));
 
-export const transactionsRelations = relations(transactions, ({ one }) => ({
-  game: one(games, {
-    fields: [transactions.gameId],
-    references: [games.id],
-  }),
-  participant: one(gameParticipants, {
-    fields: [transactions.participantId],
-    references: [gameParticipants.id],
-  }),
-  recordedBy: one(users, {
-    fields: [transactions.recordedByUserId],
-    references: [users.id],
-    relationName: "recorded_transactions",
-  }),
-}));
-
 export const transactions = pgTable("transactions", {
   id: uuid("id").defaultRandom().primaryKey(),
   gameId: uuid("game_id")
@@ -198,6 +182,22 @@ export const transactions = pgTable("transactions", {
   note: text("note"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const transactionsRelations = relations(transactions, ({ one }) => ({
+  game: one(games, {
+    fields: [transactions.gameId],
+    references: [games.id],
+  }),
+  participant: one(gameParticipants, {
+    fields: [transactions.participantId],
+    references: [gameParticipants.id],
+  }),
+  recordedBy: one(users, {
+    fields: [transactions.recordedByUserId],
+    references: [users.id],
+    relationName: "recorded_transactions",
+  }),
+}));
 
 export const settlementLines = pgTable("settlement_lines", {
   id: uuid("id").defaultRandom().primaryKey(),
