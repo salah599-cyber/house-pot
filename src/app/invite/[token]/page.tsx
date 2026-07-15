@@ -1,23 +1,78 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { SignUp } from "@clerk/nextjs";
 
+import { ensureClerkInvitation } from "@/lib/clerk-invitations";
+import { getAppUrl } from "@/lib/invites";
+import { getPlatformInviteByToken } from "@/lib/queries/invites";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getPlatformInviteByToken } from "@/lib/queries/invites";
 
 type InvitePageProps = {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ game?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+function readSearchParam(
+  params: Record<string, string | string[] | undefined>,
+  key: string,
+) {
+  const value = params[key];
+  return typeof value === "string" ? value : undefined;
+}
 
 export default async function InvitePage({ params, searchParams }: InvitePageProps) {
   const { token } = await params;
-  const { game: gameToken } = await searchParams;
+  const resolvedSearchParams = await searchParams;
+  const gameToken = readSearchParam(resolvedSearchParams, "game");
+  const clerkTicket = readSearchParam(resolvedSearchParams, "__clerk_ticket");
   const invite = await getPlatformInviteByToken(token);
 
   if (!invite || invite.status !== "pending" || invite.expiresAt < new Date()) {
     notFound();
+  }
+
+  const inviteReturnPath = gameToken
+    ? `/invite/${token}?game=${encodeURIComponent(gameToken)}`
+    : `/invite/${token}`;
+  const inviteReturnUrl = getAppUrl(inviteReturnPath);
+
+  if (!clerkTicket) {
+    const clerkInvite = await ensureClerkInvitation({
+      emailAddress: invite.email,
+      redirectUrl: inviteReturnUrl,
+    });
+
+    if ("invitation" in clerkInvite && clerkInvite.invitation.url) {
+      redirect(clerkInvite.invitation.url);
+    }
+
+    if ("error" in clerkInvite) {
+      return (
+        <div className="mx-auto max-w-lg px-4 py-16">
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardHeader>
+              <CardTitle>Registration is restricted in Clerk</CardTitle>
+              <CardDescription>
+                House Poker uses invite-only registration, but Clerk is currently blocking new
+                sign-ups.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm text-muted-foreground">
+              <p>
+                In the Clerk Dashboard, open <strong>User &amp; Authentication → Restrictions</strong>{" "}
+                and set sign-up mode to <strong>Restricted</strong> (invite-only) or{" "}
+                <strong>Public</strong>. Do not leave sign-ups fully disabled.
+              </p>
+              <p className="break-all text-xs">{clerkInvite.error}</p>
+              <Button asChild variant="outline">
+                <Link href="/sign-in">Already have an account? Sign in</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
   }
 
   const onboardingUrl = gameToken
@@ -35,6 +90,9 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm text-muted-foreground">
+          <p>
+            Register with <strong>{invite.email}</strong> to accept this invite.
+          </p>
           <p>
             After you register, you&apos;ll be able to
             {invite.targetRole === "host"
@@ -64,6 +122,7 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
           routing="hash"
           forceRedirectUrl={onboardingUrl}
           signInUrl="/sign-in"
+          initialValues={{ emailAddress: invite.email }}
         />
       </div>
     </div>

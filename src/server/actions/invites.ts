@@ -9,6 +9,7 @@ import { grantHostRole, requireDbUser, requireRole } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { platformInvites, users } from "@/lib/db/schema";
 import { describeEmailDeliveryIssue } from "@/lib/email";
+import { ensureClerkInvitation } from "@/lib/clerk-invitations";
 import { createInviteToken, getAppUrl, getInviteExpiryDate } from "@/lib/invites";
 import { rateLimitSendInvites } from "@/lib/rate-limit";
 import { sendPlatformInviteNotification } from "@/server/notifications";
@@ -124,6 +125,11 @@ export async function createPlatformInviteForEmail({
     inviterName,
     inviteLink,
     targetRole,
+  });
+
+  await ensureClerkInvitation({
+    emailAddress: normalizedEmail,
+    redirectUrl: inviteLink,
   });
 
   return {
