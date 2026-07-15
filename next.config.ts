@@ -18,13 +18,14 @@ if (isProduction) {
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://challenges.cloudflare.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://img.clerk.com",
       "font-src 'self' data:",
-      "connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.com",
-      "frame-src https://*.clerk.accounts.dev",
+      "connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://api.clerk.com https://clerk-telemetry.com https://*.clerk-telemetry.com https://challenges.cloudflare.com",
+      "frame-src 'self' https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com",
       "worker-src 'self' blob:",
+      "form-action 'self'",
     ].join("; "),
   });
 }
