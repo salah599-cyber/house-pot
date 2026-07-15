@@ -1,79 +1,92 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { formatDateTime, formatMoney } from "@/lib/dates";
-import { requireRole } from "@/lib/auth/session";
-import { Badge } from "@/components/ui/badge";
+
+import { HostGameCard } from "@/components/host/host-game-card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getHostGames } from "@/server/queries/players";
 
 export default async function HostDashboardPage() {
-  await requireRole("host");
   const games = await getHostGames();
 
+  const active = games.filter((game) => game.status === "active");
+  const upcoming = games.filter((game) => game.status === "open");
+  const past = games.filter((game) =>
+    ["settled", "cancelled", "draft"].includes(game.status),
+  );
+
   return (
-    <div className="page-shell">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="page-title">Host dashboard</h1>
-          <p className="text-sm text-muted-foreground sm:text-base">
-            Manage your cash games, invites, and seated players.
-          </p>
-        </div>
-        <Button asChild className="min-h-11 w-full sm:w-auto">
-          <Link href="/host/games/new">New game</Link>
-        </Button>
+    <div className="flex flex-col gap-8">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Live now</CardDescription>
+            <CardTitle className="text-3xl">{active.length}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Upcoming</CardDescription>
+            <CardTitle className="text-3xl">{upcoming.length}</CardTitle>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardDescription>Total hosted</CardDescription>
+            <CardTitle className="text-3xl">{games.length}</CardTitle>
+          </CardHeader>
+        </Card>
       </div>
 
-      <section className="grid gap-4">
-        {games.length === 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>No games yet</CardTitle>
-              <CardDescription>Create your first 8-player cash game.</CardDescription>
-            </CardHeader>
-          </Card>
-        ) : (
-          games.map((game) => {
-            const confirmed = game.participants.filter((participant) =>
-              ["host", "confirmed", "guest"].includes(participant.status),
-            ).length;
+      {games.length === 0 ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>No games yet</CardTitle>
+            <CardDescription>
+              Create your first cash game, invite players, and manage buy-ins from one place.
+            </CardDescription>
+            <Button asChild className="mt-4 w-full min-h-11 sm:w-auto">
+              <Link href="/host/games/new">Create your first game</Link>
+            </Button>
+          </CardHeader>
+        </Card>
+      ) : (
+        <>
+          {active.length > 0 ? (
+            <section className="space-y-3">
+              <h2 className="text-lg font-semibold">Live sessions</h2>
+              <div className="grid gap-4">
+                {active.map((game) => (
+                  <HostGameCard key={game.id} game={game} />
+                ))}
+              </div>
+            </section>
+          ) : null}
 
-            return (
-              <Card key={game.id}>
-                <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <CardTitle>{game.title}</CardTitle>
-                    <CardDescription>
-                      {formatDateTime(game.scheduledAt)} ·{" "}
-                      {formatMoney(game.defaultBuyIn, game.currency)} buy-in
-                    </CardDescription>
-                  </div>
-                  <Badge className="w-fit">{game.status}</Badge>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="text-sm text-muted-foreground">
-                    {confirmed}/{game.maxPlayers} seats confirmed
-                  </p>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <Button asChild variant="outline" className="min-h-11 w-full sm:w-auto">
-                      <Link href={`/host/games/${game.id}`}>Manage</Link>
-                    </Button>
-                    {game.status !== "open" ? (
-                      <Button asChild className="min-h-11 w-full sm:w-auto">
-                      <Link href={`/host/games/${game.id}/live`}>
-                        {game.status === "active" ? "Live" : "Results"}
-                      </Link>
-                    </Button>
-                    ) : null}
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
-        )}
-      </section>
+          {upcoming.length > 0 ? (
+            <section className="space-y-3">
+              <h2 className="text-lg font-semibold">Upcoming games</h2>
+              <div className="grid gap-4">
+                {upcoming.map((game) => (
+                  <HostGameCard key={game.id} game={game} />
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {past.length > 0 ? (
+            <section className="space-y-3">
+              <h2 className="text-lg font-semibold">Past games</h2>
+              <div className="grid gap-4">
+                {past.map((game) => (
+                  <HostGameCard key={game.id} game={game} />
+                ))}
+              </div>
+            </section>
+          ) : null}
+        </>
+      )}
     </div>
   );
 }

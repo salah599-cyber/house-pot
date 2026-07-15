@@ -41,7 +41,7 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
 
   if (game.status === "open") {
     return (
-      <div className="page-shell max-w-lg text-center">
+      <div className="mx-auto max-w-lg text-center">
         <h1 className="page-title">Game not started yet</h1>
         <p className="mt-2 text-muted-foreground">
           Start the live session from the game setup page once players are seated.
@@ -70,7 +70,7 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
   const showMobileBar = game.status === "active";
 
   return (
-    <div className={`page-shell ${showMobileBar ? "pb-24 sm:pb-10" : ""}`}>
+    <div className={`flex w-full flex-col gap-6 ${showMobileBar ? "pb-24 sm:pb-0" : ""}`}>
       <LiveSessionPoller />
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

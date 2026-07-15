@@ -18,6 +18,6 @@ export function isPlayer(roles: Role[]) {
 
 export function getDefaultDashboardPath(roles: Role[]) {
   if (isSuperAdmin(roles)) return "/super-admin";
-  if (isHost(roles)) return "/host/dashboard";
+  if (isHost(roles)) return "/host";
   return "/player/dashboard";
 }

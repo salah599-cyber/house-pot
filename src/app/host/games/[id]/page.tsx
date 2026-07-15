@@ -6,6 +6,7 @@ import { AddGuestForm } from "@/components/games/add-guest-form";
 import { InvitePlayersForm } from "@/components/games/invite-players-form";
 import { StartGameButton } from "@/components/games/live-session-controls";
 import { MaxPlayersControl } from "@/components/games/max-players-control";
+import { DesktopTable, MobileStack, MobileStackItem } from "@/components/ui/mobile-stack";
 import { getUserRoles, requireRole } from "@/lib/auth/session";
 import { getGameForHost } from "@/lib/auth/permissions";
 import { formatDateTime } from "@/lib/dates";
@@ -41,9 +42,12 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
   ).length;
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-10">
+    <div className="flex w-full flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
+          <Button asChild variant="ghost" size="sm" className="mb-2 -ml-2 min-h-10">
+            <Link href="/host/dashboard">← My games</Link>
+          </Button>
           <div className="mb-2 flex flex-wrap gap-2">
             <Badge variant="outline">Setup</Badge>
             {game.status !== "open" ? (
@@ -54,7 +58,7 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
               </Button>
             ) : null}
           </div>
-          <h1 className="text-3xl font-semibold tracking-tight">{game.title}</h1>
+          <h1 className="page-title">{game.title}</h1>
           <p className="text-muted-foreground">
             {formatDateTime(game.scheduledAt)} · {game.currency} · {game.defaultBuyIn} buy-in
           </p>
@@ -76,7 +80,23 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <MaxPlayersControl gameId={game.id} maxPlayers={game.maxPlayers} />
-            <Table>
+            <MobileStack>
+              {game.participants.map((participant) => (
+                <MobileStackItem key={participant.id}>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium">
+                      {participant.user?.displayName ?? participant.guestName ?? "Invited"}
+                    </p>
+                    <Badge variant="outline">{participant.status}</Badge>
+                  </div>
+                  <p className="mt-1 text-muted-foreground">
+                    Seat {participant.seatNumber ?? "—"}
+                  </p>
+                </MobileStackItem>
+              ))}
+            </MobileStack>
+            <DesktopTable>
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Seat</TableHead>
@@ -98,6 +118,7 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
                 ))}
               </TableBody>
             </Table>
+            </DesktopTable>
           </CardContent>
         </Card>
 

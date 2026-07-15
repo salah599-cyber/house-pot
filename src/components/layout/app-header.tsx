@@ -35,7 +35,7 @@ export async function AppHeader() {
                 </Button>
                 {userIsHost ? (
                   <Button asChild variant="ghost" size="sm">
-                    <Link href="/host/dashboard">Host</Link>
+                    <Link href="/host">Host</Link>
                   </Button>
                 ) : null}
                 {userIsSuperAdmin ? (

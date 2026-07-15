@@ -18,16 +18,6 @@ import {
 
 export async function getHostGames() {
   const user = await requireDbUser();
-  const roles = getUserRoles(user);
-
-  if (isSuperAdmin(roles)) {
-    return db.query.games.findMany({
-      orderBy: [desc(games.scheduledAt)],
-      with: {
-        participants: true,
-      },
-    });
-  }
 
   return db.query.games.findMany({
     where: eq(games.hostId, user.id),

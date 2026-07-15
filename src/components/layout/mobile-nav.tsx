@@ -31,7 +31,7 @@ export function MobileNav({ isHost, isSuperAdmin }: MobileNavProps) {
 
   const links = [
     ...baseLinks,
-    ...(isHost ? [{ href: "/host/dashboard", label: "Host" as const }] : []),
+    ...(isHost ? [{ href: "/host", label: "Host" as const }] : []),
     ...(isSuperAdmin ? [{ href: "/super-admin", label: "Admin" as const }] : []),
   ];
 
@@ -51,8 +51,10 @@ export function MobileNav({ isHost, isSuperAdmin }: MobileNavProps) {
         </DialogHeader>
         <nav className="flex flex-col gap-1">
           {links.map((link) => {
-            const active =
-              pathname === link.href ||
+        const active =
+          link.href === "/host"
+            ? pathname === "/host" || pathname.startsWith("/host/")
+            : pathname === link.href ||
               (link.href !== "/player/dashboard" && pathname.startsWith(link.href));
 
             return (
