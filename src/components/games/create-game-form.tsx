@@ -136,7 +136,7 @@ export function CreateGameForm({ defaults }: CreateGameFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="location">Location (optional)</Label>
-        <Input id="location" name="location" placeholder="Salah's place" />
+        <Input id="location" name="location" placeholder="Smith's place" />
       </div>
 
       <div className="space-y-2">
