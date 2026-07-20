@@ -170,18 +170,11 @@ export async function getAdminDashboardStats() {
     .from(games)
     .where(eq(games.status, "settled"));
 
-  const recentAudit = await db.query.auditLogs.findMany({
-    orderBy: [desc(auditLogs.createdAt)],
-    limit: 10,
-    with: { actor: true },
-  });
-
   return {
     userCount: Number(userCount.value),
     gameCount: Number(gameCount.value),
     activeGames: Number(activeGames.value),
     settledGames: Number(settledGames.value),
-    recentAudit,
   };
 }
 
