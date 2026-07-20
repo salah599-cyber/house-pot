@@ -58,6 +58,7 @@ export const auditActionEnum = pgEnum("audit_action", [
   "user_registered",
   "user_disabled",
   "user_enabled",
+  "user_deleted",
   "role_granted",
   "role_revoked",
   "game_created",

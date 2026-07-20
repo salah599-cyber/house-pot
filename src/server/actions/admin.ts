@@ -6,8 +6,9 @@ import { z } from "zod";
 
 import { logAudit } from "@/lib/audit";
 import { grantHostRole, requireRole, revokeHostRole } from "@/lib/auth/session";
+import { clerkClient } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
-import { auditLogs, games, users } from "@/lib/db/schema";
+import { auditLogs, games, userRoles, users } from "@/lib/db/schema";
 import { upsertPlatformSetting } from "@/lib/settings";
 import { count } from "drizzle-orm";
 
@@ -37,6 +38,55 @@ export async function toggleUserDisabledAction(userId: string, disabled: boolean
   });
 
   revalidatePath("/super-admin/users");
+  return { success: true };
+}
+
+export async function deleteUserAction(userId: string) {
+  const admin = await requireRole("super_admin");
+
+  if (userId === admin.id) {
+    return { error: "You cannot delete your own account." };
+  }
+
+  const target = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    with: { roles: true },
+  });
+
+  if (!target) {
+    return { error: "User not found." };
+  }
+
+  if (target.roles.some((role) => role.role === "super_admin")) {
+    const superAdmins = await db.query.userRoles.findMany({
+      where: eq(userRoles.role, "super_admin"),
+    });
+
+    if (superAdmins.length <= 1) {
+      return { error: "Cannot delete the only super admin." };
+    }
+  }
+
+  await logAudit({
+    actorUserId: admin.id,
+    action: "user_deleted",
+    entityType: "user",
+    entityId: userId,
+    summary: `Deleted user ${target.email}`,
+    metadata: { displayName: target.displayName },
+  });
+
+  await db.delete(users).where(eq(users.id, userId));
+
+  try {
+    const client = await clerkClient();
+    await client.users.deleteUser(target.clerkId);
+  } catch (error) {
+    console.error("Failed to delete Clerk user", error);
+  }
+
+  revalidatePath("/super-admin/users");
+  revalidatePath("/super-admin");
   return { success: true };
 }
 

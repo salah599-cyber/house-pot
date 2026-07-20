@@ -1,3 +1,4 @@
+import { DeleteUserButton } from "@/components/admin/delete-user-button";
 import { MakeHostButton } from "@/components/admin/make-host-button";
 import { RevokeHostButton } from "@/components/admin/revoke-host-button";
 import { ToggleUserButton } from "@/components/admin/toggle-user-button";
@@ -9,14 +10,14 @@ import { getAllUsersAdmin } from "@/server/actions/admin";
 export const dynamic = "force-dynamic";
 
 export default async function SuperAdminUsersPage() {
-  await requireRole("super_admin");
+  const admin = await requireRole("super_admin");
   const users = await getAllUsersAdmin();
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Users</CardTitle>
-        <CardDescription>Manage roles and disable accounts.</CardDescription>
+        <CardDescription>Manage roles, disable accounts, or permanently delete users.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {users.map((user) => (
@@ -49,6 +50,13 @@ export default async function SuperAdminUsersPage() {
                 <RevokeHostButton userId={user.id} />
               )}
               <ToggleUserButton userId={user.id} disabled={user.disabled} />
+              {user.id !== admin.id ? (
+                <DeleteUserButton
+                  userId={user.id}
+                  displayName={user.displayName}
+                  email={user.email}
+                />
+              ) : null}
             </div>
           </div>
         ))}
