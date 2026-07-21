@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, or } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, or } from "drizzle-orm";
 
 import { isPlayer, isSuperAdmin } from "@/lib/auth/roles";
 import { getUserRoles, requireDbUser, requireRole } from "@/lib/auth/session";
@@ -9,6 +9,7 @@ import {
   gameParticipants,
   games,
   notifications,
+  platformInvites,
   settlementLines,
   transactions,
   users,
@@ -17,6 +18,10 @@ import {
 export type InvitableRegisteredPlayer = {
   id: string;
   displayName: string;
+  email: string;
+};
+
+export type InvitablePlatformInvitee = {
   email: string;
 };
 
@@ -61,6 +66,48 @@ export async function getInvitableRegisteredPlayers(options?: {
       displayName: user.displayName,
       email: user.email,
     })) satisfies InvitableRegisteredPlayer[];
+}
+
+export async function getInvitablePlatformInvitees(options?: {
+  hostUserId?: string;
+  excludeGameId?: string;
+}) {
+  const host = options?.hostUserId
+    ? { id: options.hostUserId }
+    : await requireRole("host");
+
+  const pendingInvites = await db.query.platformInvites.findMany({
+    where: and(
+      eq(platformInvites.invitedByUserId, host.id),
+      eq(platformInvites.status, "pending"),
+      gt(platformInvites.expiresAt, new Date()),
+    ),
+    orderBy: [platformInvites.email],
+  });
+
+  if (!options?.excludeGameId) {
+    return pendingInvites.map((invite) => ({
+      email: invite.email,
+    })) satisfies InvitablePlatformInvitee[];
+  }
+
+  const existingGameInvites = await db.query.gameInvites.findMany({
+    where: and(
+      eq(gameInvites.gameId, options.excludeGameId),
+      inArray(gameInvites.status, ["pending", "registered", "confirmed"]),
+    ),
+    columns: { email: true },
+  });
+
+  const invitedEmails = new Set(
+    existingGameInvites.map((invite) => invite.email.toLowerCase()),
+  );
+
+  return pendingInvites
+    .filter((invite) => !invitedEmails.has(invite.email.toLowerCase()))
+    .map((invite) => ({
+      email: invite.email,
+    })) satisfies InvitablePlatformInvitee[];
 }
 
 export async function getHostGames() {

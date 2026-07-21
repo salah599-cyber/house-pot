@@ -1,6 +1,6 @@
 "use server";
 
-import { and, count, eq, inArray } from "drizzle-orm";
+import { and, count, eq, gt, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -63,8 +63,15 @@ function parseInvitePlayerIds(formData: FormData) {
 }
 
 function parseInviteTargets(formData: FormData, guestNamesRaw?: string) {
+  const emailsFromCheckboxes = formData
+    .getAll("invitePendingEmails")
+    .map((value) => String(value).trim().toLowerCase())
+    .filter(Boolean);
+  const emailsFromText = parseInviteEmails(String(formData.get("inviteEmails") ?? ""));
+
   return {
     playerIds: parseInvitePlayerIds(formData),
+    emails: [...new Set([...emailsFromCheckboxes, ...emailsFromText])],
     guestNames: parseGuestNames(guestNamesRaw ?? String(formData.get("guestNames") ?? "")),
   };
 }
@@ -87,7 +94,7 @@ export async function createGameAction(formData: FormData) {
   }
 
   const data = parsed.data;
-  const { playerIds, guestNames } = parseInviteTargets(formData, data.guestNames);
+  const { playerIds, emails, guestNames } = parseInviteTargets(formData, data.guestNames);
 
   const [game] = await db
     .insert(games)
@@ -125,10 +132,10 @@ export async function createGameAction(formData: FormData) {
   let guestsAdded = 0;
   const warnings: string[] = [];
 
-  if (playerIds.length > 0) {
+  if (playerIds.length > 0 || emails.length > 0) {
     const inviteResult = await invitePlayersToGame(
       game.id,
-      { playerIds, emails: [] },
+      { playerIds, emails },
       user.id,
       user.displayName,
       game.title,
@@ -156,7 +163,7 @@ export async function createGameAction(formData: FormData) {
   revalidatePath("/host/dashboard");
   revalidatePath(`/host/games/${game.id}`);
 
-  if (playerIds.length > 0 || guestNames.length > 0) {
+  if (playerIds.length > 0 || guestNames.length > 0 || emails.length > 0) {
     return {
       success: true,
       gameId: game.id,
@@ -283,7 +290,7 @@ export async function invitePlayersToGame(
   revalidatePath(`/host/games/${gameId}`);
 
   if (sent === 0 && warnings.length === 0) {
-    return { error: "Select registered players to invite." };
+    return { error: "Select registered players, pending invites, or emails to invite." };
   }
 
   if (warnings.length > 0) {
@@ -336,19 +343,32 @@ async function processGameInvite({
   let platformInviteId: string | null = null;
 
   if (!existingUser) {
-    const token = createInviteToken();
-    const [platformInvite] = await db
-      .insert(platformInvites)
-      .values({
-        email,
-        token,
-        invitedByUserId,
-        whatsappPhone: whatsappPhone ?? null,
-        expiresAt: getInviteExpiryDate(),
-      })
-      .returning();
-    platformInviteToken = token;
-    platformInviteId = platformInvite.id;
+    const existingPlatformInvite = await db.query.platformInvites.findFirst({
+      where: and(
+        eq(platformInvites.email, email),
+        eq(platformInvites.status, "pending"),
+        gt(platformInvites.expiresAt, new Date()),
+      ),
+    });
+
+    if (existingPlatformInvite) {
+      platformInviteToken = existingPlatformInvite.token;
+      platformInviteId = existingPlatformInvite.id;
+    } else {
+      const token = createInviteToken();
+      const [platformInvite] = await db
+        .insert(platformInvites)
+        .values({
+          email,
+          token,
+          invitedByUserId,
+          whatsappPhone: whatsappPhone ?? null,
+          expiresAt: getInviteExpiryDate(),
+        })
+        .returning();
+      platformInviteToken = token;
+      platformInviteId = platformInvite.id;
+    }
   }
 
   const gameInviteToken = createInviteToken();
@@ -456,10 +476,10 @@ export async function inviteEmailsToGame(
 }
 
 export async function invitePlayersAction(gameId: string, formData: FormData) {
-  const { playerIds, guestNames } = parseInviteTargets(formData);
+  const { playerIds, emails, guestNames } = parseInviteTargets(formData);
 
-  if (playerIds.length === 0 && guestNames.length === 0) {
-    return { error: "Select registered players or add guest names." };
+  if (playerIds.length === 0 && guestNames.length === 0 && emails.length === 0) {
+    return { error: "Select registered players, pending invites, emails, or guest names." };
   }
 
   const user = await requireDbUser();
@@ -475,10 +495,10 @@ export async function invitePlayersAction(gameId: string, formData: FormData) {
   let guestsAdded = 0;
   const warnings: string[] = [];
 
-  if (playerIds.length > 0) {
+  if (playerIds.length > 0 || emails.length > 0) {
     const inviteResult = await invitePlayersToGame(
       gameId,
-      { playerIds, emails: [] },
+      { playerIds, emails },
       user.id,
       user.displayName,
       game.title,
@@ -507,7 +527,9 @@ export async function invitePlayersAction(gameId: string, formData: FormData) {
   }
 
   if (sent === 0 && guestsAdded === 0) {
-    return { error: warnings.join(" ") || "Select registered players or add guest names." };
+    return {
+      error: warnings.join(" ") || "Select registered players, pending invites, emails, or guest names.",
+    };
   }
 
   if (warnings.length > 0) {
