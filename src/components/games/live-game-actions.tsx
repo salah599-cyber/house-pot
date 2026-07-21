@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { EndGameDialog } from "@/components/games/end-game-dialog";
+import { UndoLastTransactionButton } from "@/components/games/undo-transaction-button";
 import type { ParticipantTotals } from "@/lib/games/totals";
 import { Button } from "@/components/ui/button";
 
@@ -19,6 +20,12 @@ type LiveGameActionsProps = {
   status: string;
   seatedPlayers: SeatedPlayer[];
   totalsByParticipant: Record<string, ParticipantTotals>;
+  lastTransaction: {
+    id: string;
+    type: "buy_in" | "rebuy" | "cash_out";
+    amount: string;
+    participantName: string;
+  } | null;
 };
 
 export function LiveGameActions({
@@ -27,6 +34,7 @@ export function LiveGameActions({
   status,
   seatedPlayers,
   totalsByParticipant,
+  lastTransaction,
 }: LiveGameActionsProps) {
   const isActive = status === "active";
 
@@ -34,12 +42,19 @@ export function LiveGameActions({
     <>
       <div className="hidden flex-wrap gap-2 sm:flex">
         {isActive ? (
-          <EndGameDialog
-            gameId={gameId}
-            currency={currency}
-            seatedPlayers={seatedPlayers}
-            totalsByParticipant={totalsByParticipant}
-          />
+          <>
+            <UndoLastTransactionButton
+              gameId={gameId}
+              currency={currency}
+              lastTransaction={lastTransaction}
+            />
+            <EndGameDialog
+              gameId={gameId}
+              currency={currency}
+              seatedPlayers={seatedPlayers}
+              totalsByParticipant={totalsByParticipant}
+            />
+          </>
         ) : null}
         <Button asChild variant="outline">
           <Link href={`/api/host/games/${gameId}/export`}>Export CSV</Link>
@@ -48,12 +63,19 @@ export function LiveGameActions({
 
       <div className="fixed inset-x-0 bottom-0 z-30 flex gap-2 border-t border-border/60 bg-background/95 p-4 backdrop-blur supports-[padding:max(0px)]:pb-[max(1rem,env(safe-area-inset-bottom))] sm:hidden">
         {isActive ? (
-          <EndGameDialog
-            gameId={gameId}
-            currency={currency}
-            seatedPlayers={seatedPlayers}
-            totalsByParticipant={totalsByParticipant}
-          />
+          <>
+            <UndoLastTransactionButton
+              gameId={gameId}
+              currency={currency}
+              lastTransaction={lastTransaction}
+            />
+            <EndGameDialog
+              gameId={gameId}
+              currency={currency}
+              seatedPlayers={seatedPlayers}
+              totalsByParticipant={totalsByParticipant}
+            />
+          </>
         ) : null}
         <Button asChild variant="outline" className="min-h-11 flex-1">
           <Link href={`/api/host/games/${gameId}/export`}>Export</Link>

@@ -71,6 +71,23 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
   const potTotal = totals.reduce((sum, entry) => sum + entry.totalIn, 0);
   const showMobileBar = game.status === "active";
   const settlementDate = game.endedAt ?? game.scheduledAt;
+  const participantsById = Object.fromEntries(
+    seatedPlayers.map((participant) => [participant.id, participant]),
+  );
+  const sortedTransactions = [...game.transactions].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+  const latestTransaction = sortedTransactions[0];
+  const lastTransaction = latestTransaction
+    ? {
+        id: latestTransaction.id,
+        type: latestTransaction.type,
+        amount: latestTransaction.amount,
+        participantName: participantDisplayName(
+          participantsById[latestTransaction.participantId] ?? { guestName: "Player" },
+        ),
+      }
+    : null;
 
   return (
     <div className={`flex w-full flex-col gap-6 ${showMobileBar ? "pb-24 sm:pb-0" : ""}`}>
@@ -97,6 +114,7 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
           status={game.status}
           seatedPlayers={seatedPlayers}
           totalsByParticipant={totalsByParticipant}
+          lastTransaction={lastTransaction}
         />
       </div>
 
@@ -107,6 +125,7 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
           defaultBuyIn={game.defaultBuyIn}
           seatedPlayers={seatedPlayers}
           totalsByParticipant={totalsByParticipant}
+          transactions={game.transactions}
         />
       ) : (
         <Card>
