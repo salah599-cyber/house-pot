@@ -207,8 +207,8 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
                 <CardHeader>
                   <CardTitle>Invite players</CardTitle>
                   <CardDescription>
-                    Select registered players for instant in-app invites. Add emails only for
-                    people not registered yet.
+                    Select registered players for instant in-app invites. Add guest names for
+                    people who will not use the app.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

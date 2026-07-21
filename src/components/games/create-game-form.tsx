@@ -52,18 +52,26 @@ export function CreateGameForm({ registeredPlayers, defaults }: CreateGameFormPr
           }
 
           if (result.success && result.gameId) {
+            const parts: string[] = [];
+            if (result.invitesSent && result.invitesSent > 0) {
+              parts.push(`${result.invitesSent} invite(s) sent`);
+            }
+            if (result.guestsAdded && result.guestsAdded > 0) {
+              parts.push(`${result.guestsAdded} guest(s) added`);
+            }
+
             if (result.warning) {
               setFeedback({ type: "warning", message: result.warning });
-            } else if (result.invitesSent && result.invitesSent > 0) {
+            } else if (parts.length > 0) {
               setFeedback({
                 type: "success",
-                message: `Game created and ${result.invitesSent} invite(s) sent.`,
+                message: `Game created. ${parts.join(" and ")}.`,
               });
             } else {
               setFeedback({
                 type: "success",
                 message:
-                  "Game created. Select registered players or add unregistered emails on the game page to invite people.",
+                  "Game created. Select registered players or add guest names on the game page.",
               });
             }
 
@@ -144,7 +152,7 @@ export function CreateGameForm({ registeredPlayers, defaults }: CreateGameFormPr
       <InvitePlayersFields registeredPlayers={registeredPlayers} />
 
       <Button type="submit" disabled={isPending}>
-        {isPending ? "Creating..." : "Create game & send invites"}
+        {isPending ? "Creating..." : "Create game"}
       </Button>
     </form>
   );

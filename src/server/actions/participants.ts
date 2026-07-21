@@ -16,6 +16,96 @@ const guestSchema = z.object({
 
 const occupiedStatuses = ["host", "confirmed", "guest"] as const;
 
+export function parseGuestNames(raw: string | undefined): string[] {
+  const seen = new Set<string>();
+  const names: string[] = [];
+
+  for (const part of (raw ?? "").split(/[\n,;]+/)) {
+    const name = part.trim();
+    if (!name) {
+      continue;
+    }
+
+    const key = name.toLowerCase();
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    names.push(name);
+  }
+
+  return names;
+}
+
+function validateGuestName(name: string): string | null {
+  if (name.length < 2) {
+    return `"${name}" must be at least 2 characters.`;
+  }
+
+  if (name.length > 60) {
+    return `"${name}" must be at most 60 characters.`;
+  }
+
+  return null;
+}
+
+export async function addGuestsToGame(gameId: string, names: string[]) {
+  if (names.length === 0) {
+    return { added: 0 };
+  }
+
+  for (const name of names) {
+    const error = validateGuestName(name);
+    if (error) {
+      return { added: 0, error };
+    }
+  }
+
+  const game = await db.query.games.findFirst({
+    where: eq(games.id, gameId),
+  });
+
+  if (!game) {
+    return { added: 0, error: "Game not found." };
+  }
+
+  const [{ value: currentCount }] = await db
+    .select({ value: count() })
+    .from(gameParticipants)
+    .where(
+      and(
+        eq(gameParticipants.gameId, gameId),
+        inArray(gameParticipants.status, [...occupiedStatuses]),
+      ),
+    );
+
+  const available = game.maxPlayers - Number(currentCount);
+  if (names.length > available) {
+    return {
+      added: 0,
+      error:
+        available === 0
+          ? "This game is already full."
+          : `Can only add ${available} more guest(s); this game allows ${game.maxPlayers} players including the host.`,
+    };
+  }
+
+  const now = new Date();
+  await db.insert(gameParticipants).values(
+    names.map((guestName, index) => ({
+      gameId,
+      guestName,
+      status: "guest" as const,
+      seatNumber: Number(currentCount) + index + 1,
+      confirmedAt: now,
+    })),
+  );
+
+  revalidatePath(`/host/games/${gameId}`);
+  return { added: names.length };
+}
+
 export async function addGuestPlayerAction(gameId: string, formData: FormData) {
   const user = await requireDbUser();
   const roles = getUserRoles(user);
@@ -33,37 +123,11 @@ export async function addGuestPlayerAction(gameId: string, formData: FormData) {
     return { error: "Guest name must be at least 2 characters." };
   }
 
-  const game = await db.query.games.findFirst({
-    where: eq(games.id, gameId),
-  });
-
-  if (!game) {
-    return { error: "Game not found." };
+  const result = await addGuestsToGame(gameId, [parsed.data.guestName]);
+  if (result.error) {
+    return { error: result.error };
   }
 
-  const [{ value: currentCount }] = await db
-    .select({ value: count() })
-    .from(gameParticipants)
-    .where(
-      and(
-        eq(gameParticipants.gameId, gameId),
-        inArray(gameParticipants.status, [...occupiedStatuses]),
-      ),
-    );
-
-  if (Number(currentCount) >= game.maxPlayers) {
-    return { error: "This game is already full." };
-  }
-
-  await db.insert(gameParticipants).values({
-    gameId,
-    guestName: parsed.data.guestName,
-    status: "guest",
-    seatNumber: Number(currentCount) + 1,
-    confirmedAt: new Date(),
-  });
-
-  revalidatePath(`/host/games/${gameId}`);
   return { success: true };
 }
 

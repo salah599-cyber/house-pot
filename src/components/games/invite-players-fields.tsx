@@ -5,12 +5,12 @@ import type { InvitableRegisteredPlayer } from "@/lib/queries/players";
 
 type InvitePlayersFieldsProps = {
   registeredPlayers: InvitableRegisteredPlayer[];
-  emailFieldId?: string;
+  guestNamesFieldId?: string;
 };
 
 export function InvitePlayersFields({
   registeredPlayers,
-  emailFieldId = "inviteEmails",
+  guestNamesFieldId = "guestNames",
 }: InvitePlayersFieldsProps) {
   return (
     <div className="space-y-4">
@@ -19,7 +19,7 @@ export function InvitePlayersFields({
         {registeredPlayers.length === 0 ? (
           <p className="rounded-lg border border-dashed border-border p-3 text-sm text-muted-foreground">
             No registered players available yet. Use Host → Invite to add players to the
-            platform, or enter unregistered emails below.
+            platform, or add guest names below for people who will not use the app.
           </p>
         ) : (
           <div className="max-h-56 space-y-2 overflow-y-auto rounded-lg border border-border p-3">
@@ -50,29 +50,15 @@ export function InvitePlayersFields({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={emailFieldId}>Unregistered player emails</Label>
+        <Label htmlFor={guestNamesFieldId}>Guest players (no account)</Label>
         <Textarea
-          id={emailFieldId}
-          name="inviteEmails"
-          placeholder="newplayer@email.com"
+          id={guestNamesFieldId}
+          name="guestNames"
+          placeholder={"Alex\nSam\nJordan"}
           rows={3}
         />
         <p className="text-xs text-muted-foreground">
-          Only for people who have not registered on House Poker yet. They will receive a
-          registration invite for this game.
-        </p>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="inviteWhatsappPhones">WhatsApp numbers (optional)</Label>
-        <Textarea
-          id="inviteWhatsappPhones"
-          name="inviteWhatsappPhones"
-          placeholder="+968 9123 4567"
-          rows={3}
-        />
-        <p className="text-xs text-muted-foreground">
-          One number per email line, in the same order. Used when you share invites on WhatsApp.
+          One name per line. Guests exist only for this game and are not registered as users.
         </p>
       </div>
     </div>

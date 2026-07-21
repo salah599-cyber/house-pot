@@ -39,17 +39,34 @@ export function InvitePlayersForm({
           }
 
           if ("warning" in result && result.warning) {
+            const parts: string[] = [];
+            if ("sent" in result && result.sent) {
+              parts.push(`${result.sent} invite(s) sent`);
+            }
+            if ("guestsAdded" in result && result.guestsAdded) {
+              parts.push(`${result.guestsAdded} guest(s) added`);
+            }
             setFeedback({
               type: "warning",
-              message: `Sent ${result.sent} invite(s). ${result.warning}`,
+              message:
+                parts.length > 0
+                  ? `${parts.join(" and ")}. ${result.warning}`
+                  : result.warning,
             });
           } else {
+            const parts: string[] = [];
+            if ("sent" in result && result.sent) {
+              parts.push(`${result.sent} invite(s) sent`);
+            }
+            if ("guestsAdded" in result && result.guestsAdded) {
+              parts.push(`${result.guestsAdded} guest(s) added`);
+            }
             setFeedback({
               type: "success",
               message:
-                "sent" in result && result.sent === 1
-                  ? "Game invite sent. Registered players will see it on their dashboard."
-                  : `Sent ${"sent" in result ? result.sent : 0} game invite(s).`,
+                parts.length > 0
+                  ? parts.join(" and ") + "."
+                  : "Players updated.",
             });
           }
 
@@ -60,10 +77,10 @@ export function InvitePlayersForm({
       {feedback ? <FormFeedback type={feedback.type} message={feedback.message} /> : null}
       <InvitePlayersFields
         registeredPlayers={registeredPlayers}
-        emailFieldId={`inviteEmails-${gameId}`}
+        guestNamesFieldId={`guestNames-${gameId}`}
       />
       <Button type="submit" size="sm" disabled={isPending}>
-        {isPending ? "Sending..." : "Send invites"}
+        {isPending ? "Saving..." : "Add players"}
       </Button>
     </form>
   );

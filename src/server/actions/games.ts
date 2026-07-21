@@ -30,8 +30,8 @@ import { createJoinCode } from "@/lib/join-code";
 import { logAudit } from "@/lib/audit";
 import { rateLimitSendInvites } from "@/lib/rate-limit";
 import { sendGameInviteNotifications } from "@/server/notifications";
+import { addGuestsToGame, parseGuestNames } from "@/server/actions/participants";
 import {
-  normalizeWhatsAppPhone,
   parseInviteWhatsappPhones,
   whatsappPhoneAtIndex,
 } from "@/lib/whatsapp";
@@ -43,7 +43,7 @@ const createGameSchema = z.object({
   maxPlayers: z.coerce.number().int().min(8).max(MAX_PLAYERS_CAP),
   location: z.string().max(120).optional(),
   scheduledAt: z.string().min(1),
-  inviteEmails: z.string().optional(),
+  guestNames: z.string().optional(),
 });
 
 function parseInviteEmails(raw: string | undefined) {
@@ -61,13 +61,10 @@ function parseInvitePlayerIds(formData: FormData) {
   return [...new Set(formData.getAll("invitePlayerIds").map((value) => String(value).trim()).filter(Boolean))];
 }
 
-function parseInviteTargets(formData: FormData, inviteEmailsRaw?: string) {
+function parseInviteTargets(formData: FormData, guestNamesRaw?: string) {
   return {
     playerIds: parseInvitePlayerIds(formData),
-    emails: parseInviteEmails(inviteEmailsRaw ?? String(formData.get("inviteEmails") ?? "")),
-    whatsappPhones: parseInviteWhatsappPhones(
-      String(formData.get("inviteWhatsappPhones") ?? ""),
-    ),
+    guestNames: parseGuestNames(guestNamesRaw ?? String(formData.get("guestNames") ?? "")),
   };
 }
 
@@ -81,7 +78,7 @@ export async function createGameAction(formData: FormData) {
     maxPlayers: formData.get("maxPlayers") ?? DEFAULT_MAX_PLAYERS,
     location: formData.get("location") || undefined,
     scheduledAt: formData.get("scheduledAt"),
-    inviteEmails: formData.get("inviteEmails") || undefined,
+    guestNames: formData.get("guestNames") || undefined,
   });
 
   if (!parsed.success) {
@@ -89,7 +86,7 @@ export async function createGameAction(formData: FormData) {
   }
 
   const data = parsed.data;
-  const { playerIds, emails, whatsappPhones } = parseInviteTargets(formData, data.inviteEmails);
+  const { playerIds, guestNames } = parseInviteTargets(formData, data.guestNames);
 
   const [game] = await db
     .insert(games)
@@ -123,37 +120,52 @@ export async function createGameAction(formData: FormData) {
     confirmedAt: new Date(),
   });
 
-  if (playerIds.length > 0 || emails.length > 0) {
+  let invitesSent = 0;
+  let guestsAdded = 0;
+  const warnings: string[] = [];
+
+  if (playerIds.length > 0) {
     const inviteResult = await invitePlayersToGame(
       game.id,
-      { playerIds, emails, whatsappPhones },
+      { playerIds, emails: [] },
       user.id,
       user.displayName,
       game.title,
     );
 
-    revalidatePath("/host/dashboard");
-    revalidatePath(`/host/games/${game.id}`);
-
     if ("error" in inviteResult && inviteResult.error) {
-      return {
-        success: true,
-        gameId: game.id,
-        invitesSent: 0,
-        warning: `Game created, but invites failed: ${inviteResult.error}`,
-      };
+      warnings.push(`Invites failed: ${inviteResult.error}`);
+    } else {
+      invitesSent = inviteResult.sent ?? 0;
+      if (inviteResult.warning) {
+        warnings.push(inviteResult.warning);
+      }
     }
+  }
 
-    return {
-      success: true,
-      gameId: game.id,
-      invitesSent: inviteResult.sent,
-      warning: inviteResult.warning,
-    };
+  if (guestNames.length > 0) {
+    const guestResult = await addGuestsToGame(game.id, guestNames);
+    if (guestResult.error) {
+      warnings.push(guestResult.error);
+    } else {
+      guestsAdded = guestResult.added;
+    }
   }
 
   revalidatePath("/host/dashboard");
-  return { success: true, gameId: game.id, invitesSent: 0 };
+  revalidatePath(`/host/games/${game.id}`);
+
+  if (playerIds.length > 0 || guestNames.length > 0) {
+    return {
+      success: true,
+      gameId: game.id,
+      invitesSent,
+      guestsAdded,
+      warning: warnings.length > 0 ? warnings.join(" ") : undefined,
+    };
+  }
+
+  return { success: true, gameId: game.id, invitesSent: 0, guestsAdded: 0 };
 }
 
 export async function invitePlayersToGame(
@@ -270,7 +282,7 @@ export async function invitePlayersToGame(
   revalidatePath(`/host/games/${gameId}`);
 
   if (sent === 0 && warnings.length === 0) {
-    return { error: "Select registered players or add unregistered emails to invite." };
+    return { error: "Select registered players to invite." };
   }
 
   if (warnings.length > 0) {
@@ -443,10 +455,10 @@ export async function inviteEmailsToGame(
 }
 
 export async function invitePlayersAction(gameId: string, formData: FormData) {
-  const { playerIds, emails, whatsappPhones } = parseInviteTargets(formData);
+  const { playerIds, guestNames } = parseInviteTargets(formData);
 
-  if (playerIds.length === 0 && emails.length === 0) {
-    return { error: "Select registered players or add unregistered emails to invite." };
+  if (playerIds.length === 0 && guestNames.length === 0) {
+    return { error: "Select registered players or add guest names." };
   }
 
   const user = await requireDbUser();
@@ -458,13 +470,55 @@ export async function invitePlayersAction(gameId: string, formData: FormData) {
     return { error: "Game not found." };
   }
 
-  return invitePlayersToGame(
-    gameId,
-    { playerIds, emails, whatsappPhones },
-    user.id,
-    user.displayName,
-    game.title,
-  );
+  let sent = 0;
+  let guestsAdded = 0;
+  const warnings: string[] = [];
+
+  if (playerIds.length > 0) {
+    const inviteResult = await invitePlayersToGame(
+      gameId,
+      { playerIds, emails: [] },
+      user.id,
+      user.displayName,
+      game.title,
+    );
+
+    if ("error" in inviteResult && inviteResult.error) {
+      if (guestNames.length === 0) {
+        return inviteResult;
+      }
+      warnings.push(inviteResult.error);
+    } else {
+      sent = inviteResult.sent ?? 0;
+      if (inviteResult.warning) {
+        warnings.push(inviteResult.warning);
+      }
+    }
+  }
+
+  if (guestNames.length > 0) {
+    const guestResult = await addGuestsToGame(gameId, guestNames);
+    if (guestResult.error) {
+      warnings.push(guestResult.error);
+    } else {
+      guestsAdded = guestResult.added;
+    }
+  }
+
+  if (sent === 0 && guestsAdded === 0) {
+    return { error: warnings.join(" ") || "Select registered players or add guest names." };
+  }
+
+  if (warnings.length > 0) {
+    return {
+      success: true,
+      sent,
+      guestsAdded,
+      warning: warnings.join(" "),
+    };
+  }
+
+  return { success: true, sent, guestsAdded };
 }
 
 export async function updateMaxPlayersAction(gameId: string, maxPlayers: number) {
