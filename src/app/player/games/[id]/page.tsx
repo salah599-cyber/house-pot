@@ -3,8 +3,7 @@ import { notFound } from "next/navigation";
 import { SettlementPanel } from "@/components/games/settlement-panel";
 import { LiveSessionPoller } from "@/components/games/live-session-controls";
 import { calculateParticipantTotals } from "@/lib/games/totals";
-import { LocalDateTime } from "@/components/shared/local-datetime";
-import { formatMoney } from "@/lib/dates";
+import { formatDateTime, formatMoney } from "@/lib/dates";
 import { requireDbUser } from "@/lib/auth/session";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,7 +45,7 @@ export default async function PlayerGamePage({ params }: PlayerGamePageProps) {
         </div>
         <h1 className="page-title">{game.title}</h1>
         <p className="text-muted-foreground">
-          Hosted by {game.host.displayName} · <LocalDateTime value={game.scheduledAt} />
+          Hosted by {game.host.displayName} · {formatDateTime(game.scheduledAt)}
         </p>
       </div>
 
@@ -111,9 +110,7 @@ export default async function PlayerGamePage({ params }: PlayerGamePageProps) {
                     <TableCell>
                       {formatMoney(transaction.amount, game.currency)}
                     </TableCell>
-                    <TableCell>
-                      <LocalDateTime value={transaction.createdAt} />
-                    </TableCell>
+                    <TableCell>{formatDateTime(transaction.createdAt)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -31,6 +31,7 @@ import { parseGuestNames } from "@/lib/games/guests";
 import { logAudit } from "@/lib/audit";
 import { rateLimitSendInvites } from "@/lib/rate-limit";
 import { sendGameInviteNotifications } from "@/server/notifications";
+import { parseScheduledAt } from "@/lib/dates";
 import { addGuestsToGame } from "@/server/actions/participants";
 import {
   parseInviteWhatsappPhones,
@@ -106,7 +107,7 @@ export async function createGameAction(formData: FormData) {
       maxPlayers: data.maxPlayers,
       location: data.location,
       joinCode: createJoinCode(),
-      scheduledAt: new Date(data.scheduledAt),
+      scheduledAt: parseScheduledAt(data.scheduledAt),
       status: "open",
     })
     .returning();

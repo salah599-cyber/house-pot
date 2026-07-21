@@ -1,4 +1,4 @@
-import { formatMoney } from "@/lib/dates";
+import { formatMoney, formatSettlementDate } from "@/lib/dates";
 
 type StatsPanelProps = {
   stats: {

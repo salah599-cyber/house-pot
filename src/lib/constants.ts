@@ -25,3 +25,6 @@ export const REBUY_PRESET_MULTIPLIERS = [1, 2, 3, 5, 10] as const;
 export const JOIN_CODE_LENGTH = 8;
 
 export const MAX_INVITES_PER_HOUR = 60;
+
+/** Oman and UAE share UTC+4 with no daylight saving. */
+export const APP_TIMEZONE = "Asia/Dubai";
