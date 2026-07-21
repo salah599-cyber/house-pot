@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -167,6 +167,69 @@ export async function recordTransactionAction(gameId: string, formData: FormData
   revalidatePath(`/host/games/${gameId}/live`);
   revalidatePath(`/player/games/${gameId}`);
   return { success: true };
+}
+
+export async function undoTransactionAction(gameId: string, transactionId: string) {
+  const user = await requireHostGame(gameId);
+
+  const game = await db.query.games.findFirst({
+    where: eq(games.id, gameId),
+  });
+
+  if (!game || game.status !== "active") {
+    return { error: "Transactions can only be undone during an active game." };
+  }
+
+  const transaction = await db.query.transactions.findFirst({
+    where: and(eq(transactions.id, transactionId), eq(transactions.gameId, gameId)),
+  });
+
+  if (!transaction) {
+    return { error: "Transaction not found." };
+  }
+
+  await db.delete(transactions).where(eq(transactions.id, transactionId));
+
+  await logAudit({
+    actorUserId: user.id,
+    action: "transaction_undone",
+    entityType: "game",
+    entityId: gameId,
+    summary: `Undid ${transaction.type} of ${transaction.amount}`,
+    metadata: {
+      transactionId,
+      participantId: transaction.participantId,
+      type: transaction.type,
+      amount: transaction.amount,
+    },
+  });
+
+  revalidatePath(`/host/games/${gameId}/live`);
+  revalidatePath(`/player/games/${gameId}`);
+  return { success: true };
+}
+
+export async function undoLastTransactionAction(gameId: string) {
+  await requireHostGame(gameId);
+
+  const game = await db.query.games.findFirst({
+    where: eq(games.id, gameId),
+  });
+
+  if (!game || game.status !== "active") {
+    return { error: "Transactions can only be undone during an active game." };
+  }
+
+  const lastTransaction = await db.query.transactions.findFirst({
+    where: eq(transactions.gameId, gameId),
+    orderBy: [desc(transactions.createdAt)],
+  });
+
+  if (!lastTransaction) {
+    return { error: "No transactions to undo." };
+  }
+
+  return undoTransactionAction(gameId, lastTransaction.id);
 }
 
 export async function recordQuickBuyInAction(gameId: string, participantId: string) {

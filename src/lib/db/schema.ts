@@ -66,6 +66,7 @@ export const auditActionEnum = pgEnum("audit_action", [
   "game_settled",
   "game_cancelled",
   "transaction_recorded",
+  "transaction_undone",
   "invite_sent",
   "settlement_marked",
   "settings_updated",
