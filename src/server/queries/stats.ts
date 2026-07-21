@@ -63,6 +63,7 @@ export async function getPlayerStats() {
     const month = new Date(session.scheduledAt).toLocaleString("en-US", {
       month: "short",
       year: "numeric",
+      timeZone: APP_TIMEZONE,
     });
     acc[month] = (acc[month] ?? 0) + session.netResult;
     return acc;

@@ -83,7 +83,7 @@ export function StatsPanel({ stats }: StatsPanelProps) {
                   <div>
                     <p className="font-medium">{session.title}</p>
                     <p className="text-muted-foreground">
-                      {new Date(session.scheduledAt).toLocaleDateString()}
+                      {formatSettlementDate(session.scheduledAt)}
                     </p>
                   </div>
                   <span
