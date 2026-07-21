@@ -9,7 +9,8 @@ import {
 } from "@/server/actions/session";
 import { UndoTransactionButton } from "@/components/games/undo-transaction-button";
 import { REBUY_PRESET_MULTIPLIERS } from "@/lib/constants";
-import { formatDateTime, formatMoney } from "@/lib/dates";
+import { LocalDateTime } from "@/components/shared/local-datetime";
+import { formatMoney } from "@/lib/dates";
 import type { ParticipantTotals } from "@/lib/games/totals";
 import { participantDisplayName } from "@/lib/games/totals";
 import { Button } from "@/components/ui/button";
@@ -149,7 +150,7 @@ export function LiveSeatMap({
                             {formatTransactionType(transaction.type)}{" "}
                             {formatMoney(transaction.amount, currency)}
                           </span>
-                          <span className="ml-1">· {formatDateTime(transaction.createdAt)}</span>
+                          <span className="ml-1">· <LocalDateTime value={transaction.createdAt} /></span>
                         </span>
                         <UndoTransactionButton
                           gameId={gameId}
