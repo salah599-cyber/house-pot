@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { ConfirmSpotButtons } from "@/components/games/confirm-spot-buttons";
 import { getGameForJoinCode } from "@/lib/auth/game-access";
 import { getUserRoles, requireDbUser } from "@/lib/auth/session";
-import { formatDateTime, formatMoney } from "@/lib/dates";
+import { LocalDateTime } from "@/components/shared/local-datetime";
+import { formatMoney } from "@/lib/dates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,7 +36,7 @@ export default async function JoinPage({ params }: JoinPageProps) {
             <Badge>{game.status}</Badge>
           </div>
           <CardDescription>
-            Hosted by {game.host.displayName} · {formatDateTime(game.scheduledAt)}
+            Hosted by {game.host.displayName} · <LocalDateTime value={game.scheduledAt} />
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">

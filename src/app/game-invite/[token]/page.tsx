@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { getGameInviteForUser } from "@/lib/auth/game-access";
 import { requireDbUser } from "@/lib/auth/session";
-import { formatDateTime } from "@/lib/dates";
+import { LocalDateTime } from "@/components/shared/local-datetime";
 import { ConfirmSpotButtons } from "@/components/games/confirm-spot-buttons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,7 +50,7 @@ export default async function GameInvitePage({ params }: GameInvitePageProps) {
             <Badge variant="secondary">{game.status}</Badge>
           </div>
           <CardDescription>
-            Hosted by {game.host.displayName} on {formatDateTime(game.scheduledAt)}
+            Hosted by {game.host.displayName} on <LocalDateTime value={game.scheduledAt} />
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
