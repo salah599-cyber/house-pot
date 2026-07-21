@@ -7,7 +7,10 @@ import { FormFeedback } from "@/components/admin/form-feedback";
 import { InvitePlayersFields } from "@/components/games/invite-players-fields";
 import { createGameAction } from "@/server/actions/games";
 import { BUY_IN_OPTIONS, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_MAX_PLAYERS } from "@/lib/constants";
-import type { InvitableRegisteredPlayer } from "@/lib/queries/players";
+import type {
+  InvitablePlatformInvitee,
+  InvitableRegisteredPlayer,
+} from "@/lib/queries/players";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +24,7 @@ import {
 
 type CreateGameFormProps = {
   registeredPlayers: InvitableRegisteredPlayer[];
+  pendingInvitees: InvitablePlatformInvitee[];
   defaults?: {
     currency: string;
     defaultBuyIn: string;
@@ -33,7 +37,7 @@ type FeedbackState = {
   message: string;
 } | null;
 
-export function CreateGameForm({ registeredPlayers, defaults }: CreateGameFormProps) {
+export function CreateGameForm({ registeredPlayers, pendingInvitees, defaults }: CreateGameFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<FeedbackState>(null);
@@ -149,7 +153,10 @@ export function CreateGameForm({ registeredPlayers, defaults }: CreateGameFormPr
         <Input id="location" name="location" placeholder="Smith's place" />
       </div>
 
-      <InvitePlayersFields registeredPlayers={registeredPlayers} />
+      <InvitePlayersFields
+        registeredPlayers={registeredPlayers}
+        pendingInvitees={pendingInvitees}
+      />
 
       <Button type="submit" disabled={isPending}>
         {isPending ? "Creating..." : "Create game"}

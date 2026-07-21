@@ -1,5 +1,5 @@
 import { CreateGameForm } from "@/components/games/create-game-form";
-import { getInvitableRegisteredPlayers } from "@/lib/queries/players";
+import { getInvitablePlatformInvitees, getInvitableRegisteredPlayers } from "@/lib/queries/players";
 import { getAllPlatformSettings } from "@/lib/settings";
 import { requireRole } from "@/lib/auth/session";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,7 @@ export default async function NewGamePage() {
   const host = await requireRole("host");
   const settings = await getAllPlatformSettings();
   const registeredPlayers = await getInvitableRegisteredPlayers({ hostUserId: host.id });
+  const pendingInvitees = await getInvitablePlatformInvitees({ hostUserId: host.id });
 
   return (
     <Card className="max-w-2xl">
@@ -21,6 +22,7 @@ export default async function NewGamePage() {
       <CardContent>
         <CreateGameForm
           registeredPlayers={registeredPlayers}
+          pendingInvitees={pendingInvitees}
           defaults={{
             currency: settings.default_currency,
             defaultBuyIn: settings.default_buy_in,
