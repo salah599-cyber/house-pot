@@ -34,13 +34,17 @@ export function DeleteUserButton({
         }
 
         startTransition(async () => {
-          const result = await deleteUserAction(userId);
-          if ("error" in result && result.error) {
-            window.alert(result.error);
-            return;
-          }
+          try {
+            const result = await deleteUserAction(userId);
+            if ("error" in result && result.error) {
+              window.alert(result.error);
+              return;
+            }
 
-          router.refresh();
+            router.refresh();
+          } catch {
+            window.alert("Could not delete user. Please try again.");
+          }
         });
       }}
     >

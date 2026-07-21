@@ -42,52 +42,59 @@ export async function toggleUserDisabledAction(userId: string, disabled: boolean
 }
 
 export async function deleteUserAction(userId: string) {
-  const admin = await requireRole("super_admin");
+  try {
+    const admin = await requireRole("super_admin");
 
-  if (userId === admin.id) {
-    return { error: "You cannot delete your own account." };
-  }
+    if (userId === admin.id) {
+      return { error: "You cannot delete your own account." };
+    }
 
-  const target = await db.query.users.findFirst({
-    where: eq(users.id, userId),
-    with: { roles: true },
-  });
-
-  if (!target) {
-    return { error: "User not found." };
-  }
-
-  if (target.roles.some((role) => role.role === "super_admin")) {
-    const superAdmins = await db.query.userRoles.findMany({
-      where: eq(userRoles.role, "super_admin"),
+    const target = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+      with: { roles: true },
     });
 
-    if (superAdmins.length <= 1) {
-      return { error: "Cannot delete the only super admin." };
+    if (!target) {
+      return { error: "User not found." };
     }
-  }
 
-  await logAudit({
-    actorUserId: admin.id,
-    action: "user_deleted",
-    entityType: "user",
-    entityId: userId,
-    summary: `Deleted user ${target.email}`,
-    metadata: { displayName: target.displayName },
-  });
+    if (target.roles.some((role) => role.role === "super_admin")) {
+      const superAdmins = await db.query.userRoles.findMany({
+        where: eq(userRoles.role, "super_admin"),
+      });
 
-  await db.delete(users).where(eq(users.id, userId));
+      if (superAdmins.length <= 1) {
+        return { error: "Cannot delete the only super admin." };
+      }
+    }
 
-  try {
-    const client = await clerkClient();
-    await client.users.deleteUser(target.clerkId);
+    await logAudit({
+      actorUserId: admin.id,
+      action: "user_deleted",
+      entityType: "user",
+      entityId: userId,
+      summary: `Deleted user ${target.email}`,
+      metadata: { displayName: target.displayName },
+    });
+
+    await db.delete(users).where(eq(users.id, userId));
+
+    try {
+      const client = await clerkClient();
+      await client.users.deleteUser(target.clerkId);
+    } catch (error) {
+      console.error("Failed to delete Clerk user", error);
+    }
+
+    revalidatePath("/super-admin/users");
+    revalidatePath("/super-admin");
+    return { success: true };
   } catch (error) {
-    console.error("Failed to delete Clerk user", error);
+    console.error("deleteUserAction failed", error);
+    const message =
+      error instanceof Error ? error.message : "Could not delete user. Please try again.";
+    return { error: message };
   }
-
-  revalidatePath("/super-admin/users");
-  revalidatePath("/super-admin");
-  return { success: true };
 }
 
 export async function promoteUserToHostAction(userId: string) {
