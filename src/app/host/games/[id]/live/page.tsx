@@ -12,8 +12,7 @@ import {
   calculateAllParticipantTotals,
   participantDisplayName,
 } from "@/lib/games/totals";
-import { LocalDateTime } from "@/components/shared/local-datetime";
-import { formatMoney } from "@/lib/dates";
+import { formatDateTime, formatMoney } from "@/lib/dates";
 import { buildSettlementWhatsAppMessage } from "@/lib/whatsapp-messages";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -104,7 +103,7 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
           </div>
           <h1 className="page-title">{game.title}</h1>
           <p className="text-sm text-muted-foreground sm:text-base">
-            <LocalDateTime value={game.scheduledAt} /> · Pot in play:{" "}
+            {formatDateTime(game.scheduledAt)} · Pot in play:{" "}
             {formatMoney(potTotal, game.currency)}
           </p>
         </div>

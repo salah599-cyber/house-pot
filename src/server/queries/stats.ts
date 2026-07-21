@@ -2,7 +2,7 @@
 
 import { and, desc, eq, inArray } from "drizzle-orm";
 
-import { DEFAULT_CURRENCY } from "@/lib/constants";
+import { DEFAULT_CURRENCY, APP_TIMEZONE } from "@/lib/constants";
 import { calculateParticipantTotals } from "@/lib/games/totals";
 import { requireDbUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";

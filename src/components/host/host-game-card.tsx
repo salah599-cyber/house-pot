@@ -1,7 +1,6 @@
 import Link from "next/link";
 
-import { LocalDateTime } from "@/components/shared/local-datetime";
-import { formatMoney } from "@/lib/dates";
+import { formatDateTime, formatMoney } from "@/lib/dates";
 import type { Game } from "@/lib/db/schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,7 +32,7 @@ export function HostGameCard({ game }: { game: GameWithParticipants }) {
         <div>
           <CardTitle>{game.title}</CardTitle>
           <CardDescription>
-            <LocalDateTime value={game.scheduledAt} /> · {formatMoney(game.defaultBuyIn, game.currency)}{" "}
+            {formatDateTime(game.scheduledAt)} · {formatMoney(game.defaultBuyIn, game.currency)}{" "}
             buy-in
             {game.location ? ` · ${game.location}` : ""}
           </CardDescription>

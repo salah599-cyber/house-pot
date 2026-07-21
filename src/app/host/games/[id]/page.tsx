@@ -12,7 +12,7 @@ import { WhatsAppShareButton } from "@/components/shared/whatsapp-share-button";
 import { DesktopTable, MobileStack, MobileStackItem } from "@/components/ui/mobile-stack";
 import { getUserRoles, requireRole } from "@/lib/auth/session";
 import { getGameForHost } from "@/lib/auth/permissions";
-import { LocalDateTime } from "@/components/shared/local-datetime";
+import { formatDateTime } from "@/lib/dates";
 import { isGameInviteActive } from "@/lib/game-invites";
 import { getAppUrl } from "@/lib/invites";
 import { getInvitablePlatformInvitees, getInvitableRegisteredPlayers } from "@/lib/queries/players";
@@ -82,7 +82,7 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
           </div>
           <h1 className="page-title">{game.title}</h1>
           <p className="text-muted-foreground">
-            <LocalDateTime value={game.scheduledAt} /> · {game.currency} · {game.defaultBuyIn} buy-in
+            {formatDateTime(game.scheduledAt)} · {game.currency} · {game.defaultBuyIn} buy-in
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

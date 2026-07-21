@@ -1,8 +1,7 @@
 import Link from "next/link";
 
 import { MarkAllReadButton } from "@/components/player/mark-all-read-button";
-import { LocalDateTime } from "@/components/shared/local-datetime";
-import { formatMoney } from "@/lib/dates";
+import { formatDateTime, formatMoney } from "@/lib/dates";
 import { requireDbUser } from "@/lib/auth/session";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -76,7 +75,7 @@ export default async function PlayerDashboardPage() {
                   <div>
                     <p className="font-medium">{invite.game.title}</p>
                     <p className="text-sm text-muted-foreground">
-                      <LocalDateTime value={invite.game.scheduledAt} />
+                      {formatDateTime(invite.game.scheduledAt)}
                     </p>
                   </div>
                   <Button asChild className="min-h-11 w-full sm:w-auto">
@@ -104,7 +103,7 @@ export default async function PlayerDashboardPage() {
                   <div>
                     <p className="font-medium">{participation.game.title}</p>
                     <p className="text-sm text-muted-foreground">
-                      <LocalDateTime value={participation.game.scheduledAt} /> ·{" "}
+                      {formatDateTime(participation.game.scheduledAt)} ·{" "}
                       {formatMoney(participation.game.defaultBuyIn, participation.game.currency)}
                     </p>
                   </div>
