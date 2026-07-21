@@ -27,10 +27,11 @@ import { describeEmailDeliveryIssue } from "@/lib/email";
 import { ensureClerkInvitation } from "@/lib/clerk-invitations";
 import { createInviteToken, getAppUrl, getInviteExpiryDate } from "@/lib/invites";
 import { createJoinCode } from "@/lib/join-code";
+import { parseGuestNames } from "@/lib/games/guests";
 import { logAudit } from "@/lib/audit";
 import { rateLimitSendInvites } from "@/lib/rate-limit";
 import { sendGameInviteNotifications } from "@/server/notifications";
-import { addGuestsToGame, parseGuestNames } from "@/server/actions/participants";
+import { addGuestsToGame } from "@/server/actions/participants";
 import {
   parseInviteWhatsappPhones,
   whatsappPhoneAtIndex,

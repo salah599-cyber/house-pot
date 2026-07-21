@@ -9,46 +9,13 @@ import { getUserRoles, grantPlayerRole, requireDbUser } from "@/lib/auth/session
 import { isGameInviteActive, isGameInviteExpired } from "@/lib/game-invites";
 import { db } from "@/lib/db";
 import { gameInvites, gameParticipants, games, transactions } from "@/lib/db/schema";
+import { validateGuestName } from "@/lib/games/guests";
 
 const guestSchema = z.object({
   guestName: z.string().min(2).max(60),
 });
 
 const occupiedStatuses = ["host", "confirmed", "guest"] as const;
-
-export function parseGuestNames(raw: string | undefined): string[] {
-  const seen = new Set<string>();
-  const names: string[] = [];
-
-  for (const part of (raw ?? "").split(/[\n,;]+/)) {
-    const name = part.trim();
-    if (!name) {
-      continue;
-    }
-
-    const key = name.toLowerCase();
-    if (seen.has(key)) {
-      continue;
-    }
-
-    seen.add(key);
-    names.push(name);
-  }
-
-  return names;
-}
-
-function validateGuestName(name: string): string | null {
-  if (name.length < 2) {
-    return `"${name}" must be at least 2 characters.`;
-  }
-
-  if (name.length > 60) {
-    return `"${name}" must be at most 60 characters.`;
-  }
-
-  return null;
-}
 
 export async function addGuestsToGame(gameId: string, names: string[]) {
   if (names.length === 0) {
