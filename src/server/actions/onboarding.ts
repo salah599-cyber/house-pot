@@ -3,6 +3,7 @@
 import { and, eq, gt, inArray, isNull, like, or } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
+import { APP_NAME } from "@/lib/constants";
 import { getDefaultDashboardPath } from "@/lib/auth/roles";
 import { logAudit } from "@/lib/audit";
 import {
@@ -121,7 +122,7 @@ export async function completeOnboardingAction(
     } else {
       return {
         error:
-          "House Poker is invite-only. Ask a host for an invitation link before registering.",
+          `${APP_NAME} is invite-only. Ask a host for an invitation link before registering.`,
       };
     }
   }

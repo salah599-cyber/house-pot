@@ -1,4 +1,5 @@
 import { CreateGameForm } from "@/components/games/create-game-form";
+import { APP_NAME } from "@/lib/constants";
 import { getInvitablePlatformInvitees, getInvitableRegisteredPlayers } from "@/lib/queries/players";
 import { getAllPlatformSettings } from "@/lib/settings";
 import { requireRole } from "@/lib/auth/session";
@@ -16,7 +17,7 @@ export default async function NewGamePage() {
         <CardTitle>Create a cash game</CardTitle>
         <CardDescription>
           You are automatically seated as host. Select registered players or add emails for
-          people not on House Poker yet.
+          people not on {APP_NAME} yet.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -24,7 +25,6 @@ export default async function NewGamePage() {
           registeredPlayers={registeredPlayers}
           pendingInvitees={pendingInvitees}
           defaults={{
-            currency: settings.default_currency,
             defaultBuyIn: settings.default_buy_in,
             maxPlayers: settings.default_max_players,
           }}

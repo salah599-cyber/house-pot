@@ -44,7 +44,7 @@ export default async function HomePage() {
           </div>
 
           <h1 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
-            House poker nights, without the spreadsheet
+            House Pot nights, without the spreadsheet
           </h1>
 
           <p className="mt-4 text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
@@ -80,7 +80,7 @@ export default async function HomePage() {
         </section>
 
         <p className="mt-16 text-center text-xs text-muted-foreground">
-          OMR · $20 / $50 buy-ins · 8–9 players per table
+          20 / 50 buy-ins · 8–9 players per table
         </p>
       </div>
     </div>

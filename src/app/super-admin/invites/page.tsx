@@ -3,6 +3,7 @@ import { DeletePlatformInviteButton } from "@/components/admin/delete-platform-i
 import { InviteUserForm } from "@/components/admin/invite-user-form";
 import { ResendInviteEmailButton } from "@/components/admin/resend-invite-email-button";
 import { WhatsAppShareButton } from "@/components/shared/whatsapp-share-button";
+import { APP_NAME } from "@/lib/constants";
 import { requireRole } from "@/lib/auth/session";
 import { isInviteEmailDeliveryConfigured } from "@/lib/email";
 import { formatDateTime } from "@/lib/dates";
@@ -26,7 +27,7 @@ export default async function SuperAdminInvitesPage() {
           <CardHeader>
             <CardTitle className="text-base">Invite email is not configured</CardTitle>
             <CardDescription>
-              Invites are saved in House Poker. Clerk sends invitation emails to new users when
+              Invites are saved in {APP_NAME}. Clerk sends invitation emails to new users when
               configured. Registered players see invites on their dashboard. If email fails, copy
               the invite link from Pending invites and send it manually.
             </CardDescription>

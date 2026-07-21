@@ -3,6 +3,7 @@ import { DeletePlatformInviteButton } from "@/components/admin/delete-platform-i
 import { InvitePlayersToPlatformForm } from "@/components/host/invite-players-to-platform-form";
 import { HostResendInviteEmailButton } from "@/components/host/host-resend-invite-email-button";
 import { WhatsAppShareButton } from "@/components/shared/whatsapp-share-button";
+import { APP_NAME } from "@/lib/constants";
 import { requireRole } from "@/lib/auth/session";
 import { formatDateTime } from "@/lib/dates";
 import { isInviteEmailDeliveryConfigured } from "@/lib/email";
@@ -34,7 +35,7 @@ export default async function HostInvitePage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Invite players to House Poker</CardTitle>
+          <CardTitle>Invite players to {APP_NAME}</CardTitle>
           <CardDescription>
             Send platform invites without tying them to a specific game. Invited players can
             register, then you can add them to games later.

@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
 import { updatePlatformSettingsAction } from "@/server/actions/admin";
-import { CURRENCIES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -17,7 +16,6 @@ import {
 
 type SettingsFormProps = {
   settings: {
-    default_currency: string;
     default_buy_in: string;
     default_max_players: string;
   };
@@ -37,22 +35,6 @@ export function PlatformSettingsForm({ settings }: SettingsFormProps) {
         })
       }
     >
-      <div className="space-y-2">
-        <Label htmlFor="default_currency">Default currency</Label>
-        <Select name="default_currency" defaultValue={settings.default_currency}>
-          <SelectTrigger id="default_currency">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {CURRENCIES.map((currency) => (
-              <SelectItem key={currency.code} value={currency.code}>
-                {currency.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
       <div className="space-y-2">
         <Label htmlFor="default_buy_in">Default buy-in</Label>
         <Select name="default_buy_in" defaultValue={settings.default_buy_in}>

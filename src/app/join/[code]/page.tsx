@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ConfirmSpotButtons } from "@/components/games/confirm-spot-buttons";
 import { getGameForJoinCode } from "@/lib/auth/game-access";
 import { getUserRoles, requireDbUser } from "@/lib/auth/session";
-import { formatDateTime, formatMoney } from "@/lib/dates";
+import { formatDateTime, formatAmount } from "@/lib/dates";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,7 +42,7 @@ export default async function JoinPage({ params }: JoinPageProps) {
           <div className="grid gap-2 sm:grid-cols-2">
             <p>
               <span className="text-muted-foreground">Buy-in:</span>{" "}
-              {formatMoney(game.defaultBuyIn, game.currency)}
+              {formatAmount(game.defaultBuyIn)}
             </p>
             <p>
               <span className="text-muted-foreground">Join code:</span>{" "}

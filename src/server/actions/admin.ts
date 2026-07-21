@@ -179,7 +179,6 @@ export async function cancelGameAction(gameId: string) {
 }
 
 const settingsSchema = z.object({
-  default_currency: z.string().length(3),
   default_buy_in: z.enum(["20", "50"]),
   default_max_players: z.enum(["8", "9"]),
 });
@@ -188,7 +187,6 @@ export async function updatePlatformSettingsAction(formData: FormData) {
   const admin = await requireRole("super_admin");
 
   const parsed = settingsSchema.safeParse({
-    default_currency: formData.get("default_currency"),
     default_buy_in: formData.get("default_buy_in"),
     default_max_players: formData.get("default_max_players"),
   });

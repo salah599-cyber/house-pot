@@ -1,5 +1,7 @@
 import { Resend } from "resend";
 
+import { APP_NAME } from "@/lib/constants";
+
 type SendEmailInput = {
   to: string;
   subject: string;
@@ -12,7 +14,7 @@ export type SendEmailResult =
   | { status: "failed"; reason: string };
 
 function getEmailFromAddress() {
-  return process.env.EMAIL_FROM ?? "House Poker <onboarding@resend.dev>";
+  return process.env.EMAIL_FROM ?? `${APP_NAME} <onboarding@resend.dev>`;
 }
 
 export function isResendSandboxSender(from = getEmailFromAddress()) {
@@ -76,7 +78,7 @@ export function emailTemplate(title: string, body: string, actionHref?: string, 
       <h1 style="color:#fff;font-size:24px">${title}</h1>
       <p style="line-height:1.6;color:#a3a3a3">${body}</p>
       ${actionHref && actionLabel ? emailButton(actionHref, actionLabel) : ""}
-      <p style="font-size:12px;color:#737373">House Poker — invite-only home games</p>
+      <p style="font-size:12px;color:#737373">${APP_NAME} — invite-only home games</p>
     </div>
   `;
 }

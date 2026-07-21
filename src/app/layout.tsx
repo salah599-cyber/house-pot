@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
 import { AppHeader } from "@/components/layout/app-header";
+import { APP_NAME } from "@/lib/constants";
 
 import "./globals.css";
 
@@ -17,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "House Poker",
-  description: "Invite-only home game poker ledger for hosts and players.",
+  title: APP_NAME,
+  description: "Invite-only home game ledger for hosts and players.",
 };
 
 export default function RootLayout({

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { endGameAndSettleAction } from "@/server/actions/session";
-import { formatMoney } from "@/lib/dates";
+import { formatAmount } from "@/lib/dates";
 import type { ParticipantTotals } from "@/lib/games/totals";
 import { participantDisplayName } from "@/lib/games/totals";
 import { Button } from "@/components/ui/button";
@@ -29,14 +29,12 @@ type SeatedPlayer = {
 
 type EndGameDialogProps = {
   gameId: string;
-  currency: string;
   seatedPlayers: SeatedPlayer[];
   totalsByParticipant: Record<string, ParticipantTotals>;
 };
 
 export function EndGameDialog({
   gameId,
-  currency,
   seatedPlayers,
   totalsByParticipant,
 }: EndGameDialogProps) {
@@ -77,7 +75,7 @@ export function EndGameDialog({
           <DialogTitle>End game and generate settlements</DialogTitle>
           <DialogDescription>
             Enter each player&apos;s final cash-out. Total cash-out must equal total buy-ins
-            ({formatMoney(totalIn, currency)}).
+            ({formatAmount(totalIn)}).
           </DialogDescription>
         </DialogHeader>
 
@@ -101,14 +99,14 @@ export function EndGameDialog({
                 }
               />
               <p className="text-xs text-muted-foreground">
-                In: {formatMoney(totalsByParticipant[player.id]?.totalIn ?? 0, currency)}
+                In: {formatAmount(totalsByParticipant[player.id]?.totalIn ?? 0)}
               </p>
             </div>
           ))}
 
           <p className={balanced ? "text-emerald-400" : "text-rose-400"}>
-            Total out: {formatMoney(totalOut, currency)}{" "}
-            {balanced ? "(balanced)" : `(must equal ${formatMoney(totalIn, currency)})`}
+            Total out: {formatAmount(totalOut)}{" "}
+            {balanced ? "(balanced)" : `(must equal ${formatAmount(totalIn)})`}
           </p>
 
           {error ? <p className="text-sm text-destructive">{error}</p> : null}

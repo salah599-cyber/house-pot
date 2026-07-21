@@ -7,7 +7,7 @@ import {
   markMySettlementCompleteAction,
   markSettlementSettledAction,
 } from "@/server/actions/settlements";
-import { formatMoney } from "@/lib/dates";
+import { formatAmount } from "@/lib/dates";
 import { buildSettlementWhatsAppMessage } from "@/lib/whatsapp-messages";
 import { WhatsAppShareButton } from "@/components/shared/whatsapp-share-button";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,6 @@ type SettlementLine = {
 type SettlementPanelProps = {
   gameId: string;
   gameDate: Date | string;
-  currency: string;
   participantId: string;
   settlements: SettlementLine[];
   settlementMarked: boolean;
@@ -46,7 +45,6 @@ function displayName(participant: SettlementLine["fromParticipant"]) {
 export function SettlementPanel({
   gameId,
   gameDate,
-  currency,
   participantId,
   settlements,
   settlementMarked,
@@ -97,7 +95,7 @@ export function SettlementPanel({
                 {isPayer ? "You owe" : "You receive from"} {displayName(counterparty)}
               </p>
               <p className="mt-1 text-muted-foreground">
-                {formatMoney(line.amount, currency)}
+                {formatAmount(line.amount)}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <Button
