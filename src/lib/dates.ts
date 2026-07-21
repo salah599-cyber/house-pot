@@ -30,21 +30,7 @@ export function parseScheduledAt(value: string) {
   return new Date(`${normalized}${offset}`);
 }
 
-export function formatMoney(amount: string | number, currency: string) {
-  const value = typeof amount === "string" ? Number(amount) : amount;
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(value);
-}
-
-export function formatSettlementDate(value: Date | string) {
-  return new Intl.DateTimeFormat("en-US", dateFormatOptions).format(new Date(value));
-}
-
-export function formatSettlementAmount(amount: string | number) {
+export function formatAmount(amount: string | number) {
   const value = typeof amount === "string" ? Number(amount) : amount;
   if (!Number.isFinite(value)) {
     return "0";
@@ -56,3 +42,10 @@ export function formatSettlementAmount(amount: string | number) {
 
   return String(Math.round(value * 100) / 100);
 }
+
+export function formatSettlementDate(value: Date | string) {
+  return new Intl.DateTimeFormat("en-US", dateFormatOptions).format(new Date(value));
+}
+
+/** @deprecated Use formatAmount */
+export const formatSettlementAmount = formatAmount;

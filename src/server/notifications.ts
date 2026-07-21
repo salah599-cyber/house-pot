@@ -1,3 +1,4 @@
+import { APP_NAME } from "@/lib/constants";
 import { db } from "@/lib/db";
 import {
   emailTemplate,
@@ -43,7 +44,7 @@ export async function createNotification(input: NotificationEmailInput): Promise
       input.title,
       input.emailBody ?? input.body,
       input.link,
-      "Open in House Poker",
+      `Open in ${APP_NAME}`,
     ),
   });
 }
@@ -61,7 +62,7 @@ export async function sendGameInviteNotifications(input: GameInviteNotificationI
   const title = `You're invited to ${input.gameTitle}`;
   const body = input.userId
     ? `${input.hostName} invited you to a cash game. Confirm your spot before seats fill up.`
-    : `${input.hostName} invited you to join House Poker and play in ${input.gameTitle}. Register first, then confirm your seat.`;
+    : `${input.hostName} invited you to join ${APP_NAME} and play in ${input.gameTitle}. Register first, then confirm your seat.`;
 
   return createNotification({
     email: input.email,
@@ -106,7 +107,7 @@ export async function sendGameSettledNotification(input: {
     link: input.link,
     emailSubject: `Settlements ready — ${input.gameTitle}`,
     emailBody:
-      "The host finalized the game. Open House Poker to see who you owe or who owes you.",
+      `The host finalized the game. Open ${APP_NAME} to see who you owe or who owes you.`,
   });
 }
 
@@ -137,11 +138,11 @@ type PlatformInviteNotificationInput = {
 export async function sendPlatformInviteNotification(input: PlatformInviteNotificationInput) {
   const isHostInvite = input.targetRole === "host";
   const title = isHostInvite
-    ? "You're invited to host on House Poker"
-    : "You're invited to House Poker";
+    ? `You're invited to host on ${APP_NAME}`
+    : `You're invited to ${APP_NAME}`;
   const body = isHostInvite
-    ? `${input.inviterName} invited you to join House Poker as a host. Register with this email to create and manage cash games.`
-    : `${input.inviterName} invited you to join House Poker. Register to confirm game seats and track your buy-ins and settlements.`;
+    ? `${input.inviterName} invited you to join ${APP_NAME} as a host. Register with this email to create and manage cash games.`
+    : `${input.inviterName} invited you to join ${APP_NAME}. Register to confirm game seats and track your buy-ins and settlements.`;
 
   return createNotification({
     email: input.email,

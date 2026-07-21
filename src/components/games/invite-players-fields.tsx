@@ -1,3 +1,4 @@
+import { APP_NAME } from "@/lib/constants";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -81,7 +82,7 @@ export function InvitePlayersFields({
                 <span className="min-w-0 text-sm">
                   <span className="block font-medium">{invitee.email}</span>
                   <span className="block text-muted-foreground">
-                    Invited to House Poker, not registered yet
+                    Invited to {APP_NAME}, not registered yet
                   </span>
                 </span>
               </label>

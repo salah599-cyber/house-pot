@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { MarkAllReadButton } from "@/components/player/mark-all-read-button";
-import { formatDateTime, formatMoney } from "@/lib/dates";
+import { formatAmount, formatDateTime } from "@/lib/dates";
 import { requireDbUser } from "@/lib/auth/session";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ export default async function PlayerDashboardPage() {
     <div className="page-shell">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="page-title">My poker dashboard</h1>
+          <h1 className="page-title">My dashboard</h1>
           <p className="text-sm text-muted-foreground sm:text-base">
             You only see your games, notifications, and settlement details.
           </p>
@@ -104,7 +104,7 @@ export default async function PlayerDashboardPage() {
                     <p className="font-medium">{participation.game.title}</p>
                     <p className="text-sm text-muted-foreground">
                       {formatDateTime(participation.game.scheduledAt)} ·{" "}
-                      {formatMoney(participation.game.defaultBuyIn, participation.game.currency)}
+                      {formatAmount(participation.game.defaultBuyIn)}
                     </p>
                   </div>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center">

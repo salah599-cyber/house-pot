@@ -1,15 +1,12 @@
-import { DEFAULT_CURRENCY } from "@/lib/constants";
 import { db } from "@/lib/db";
 import { platformSettings } from "@/lib/db/schema";
 
 const DEFAULTS = {
-  default_currency: DEFAULT_CURRENCY,
   default_buy_in: "50",
   default_max_players: "8",
 } as const;
 
 export type PlatformSettings = {
-  default_currency: string;
   default_buy_in: string;
   default_max_players: string;
 };
@@ -25,7 +22,6 @@ export async function getPlatformSetting(key: keyof PlatformSettings) {
 export async function getAllPlatformSettings(): Promise<PlatformSettings> {
   const rows = await db.query.platformSettings.findMany();
   const map = { ...DEFAULTS } as {
-    default_currency: string;
     default_buy_in: string;
     default_max_players: string;
   };

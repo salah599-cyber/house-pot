@@ -40,7 +40,6 @@ import {
 
 const createGameSchema = z.object({
   title: z.string().min(3).max(80),
-  currency: z.string().min(3).max(3),
   defaultBuyIn: z.coerce.number().refine((value) => BUY_IN_OPTIONS.includes(value as 20 | 50)),
   maxPlayers: z.coerce.number().int().min(8).max(MAX_PLAYERS_CAP),
   location: z.string().max(120).optional(),
@@ -82,7 +81,6 @@ export async function createGameAction(formData: FormData) {
 
   const parsed = createGameSchema.safeParse({
     title: formData.get("title"),
-    currency: formData.get("currency"),
     defaultBuyIn: formData.get("defaultBuyIn"),
     maxPlayers: formData.get("maxPlayers") ?? DEFAULT_MAX_PLAYERS,
     location: formData.get("location") || undefined,
@@ -102,7 +100,6 @@ export async function createGameAction(formData: FormData) {
     .values({
       hostId: user.id,
       title: data.title,
-      currency: data.currency,
       defaultBuyIn: data.defaultBuyIn.toFixed(2),
       maxPlayers: data.maxPlayers,
       location: data.location,

@@ -4,6 +4,7 @@ import { SignUp } from "@clerk/nextjs";
 
 import { WrongInviteAccount } from "@/components/auth/wrong-invite-account";
 import { ensureClerkInvitation } from "@/lib/clerk-invitations";
+import { APP_NAME } from "@/lib/constants";
 import { getAppUrl } from "@/lib/invites";
 import { getPlatformInviteByToken } from "@/lib/queries/invites";
 import { Button } from "@/components/ui/button";
@@ -84,7 +85,7 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
             <CardHeader>
               <CardTitle>Registration is restricted in Clerk</CardTitle>
               <CardDescription>
-                House Poker uses invite-only registration, but Clerk is currently blocking new
+                {APP_NAME} uses invite-only registration, but Clerk is currently blocking new
                 sign-ups.
               </CardDescription>
             </CardHeader>
@@ -109,7 +110,7 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
     <div className="mx-auto grid w-full max-w-4xl gap-8 px-4 py-12 lg:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>You&apos;re invited to House Poker</CardTitle>
+          <CardTitle>You&apos;re invited to {APP_NAME}</CardTitle>
           <CardDescription>
             {invite.invitedBy.displayName} invited <strong>{invite.email}</strong> to join
             {invite.targetRole === "host" ? " as a host" : ""}. Registration is invite-only.

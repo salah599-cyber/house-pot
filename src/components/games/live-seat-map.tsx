@@ -9,7 +9,7 @@ import {
 } from "@/server/actions/session";
 import { UndoTransactionButton } from "@/components/games/undo-transaction-button";
 import { REBUY_PRESET_MULTIPLIERS } from "@/lib/constants";
-import { formatDateTime, formatMoney } from "@/lib/dates";
+import { formatAmount, formatDateTime } from "@/lib/dates";
 import type { ParticipantTotals } from "@/lib/games/totals";
 import { participantDisplayName } from "@/lib/games/totals";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,6 @@ type GameTransaction = {
 
 type LiveSeatMapProps = {
   gameId: string;
-  currency: string;
   defaultBuyIn: string;
   seatedPlayers: SeatedPlayer[];
   totalsByParticipant: Record<string, ParticipantTotals>;
@@ -42,7 +41,6 @@ type LiveSeatMapProps = {
 
 export function LiveSeatMap({
   gameId,
-  currency,
   defaultBuyIn,
   seatedPlayers,
   totalsByParticipant,
@@ -113,7 +111,7 @@ export function LiveSeatMap({
                     totals && totals.netResult >= 0 ? "text-emerald-400" : "text-rose-400"
                   }
                 >
-                  {totals ? formatMoney(totals.netResult, currency) : formatMoney(0, currency)}
+                  {totals ? formatAmount(totals.netResult) : formatAmount(0)}
                 </span>
               </CardTitle>
             </CardHeader>
@@ -121,15 +119,15 @@ export function LiveSeatMap({
               <div className="grid grid-cols-3 gap-2 text-muted-foreground">
                 <div>
                   <p className="text-xs uppercase">Buy-in</p>
-                  <p>{formatMoney(totals?.totalBuyIn ?? 0, currency)}</p>
+                  <p>{formatAmount(totals?.totalBuyIn ?? 0)}</p>
                 </div>
                 <div>
                   <p className="text-xs uppercase">Rebuy</p>
-                  <p>{formatMoney(totals?.totalRebuy ?? 0, currency)}</p>
+                  <p>{formatAmount(totals?.totalRebuy ?? 0)}</p>
                 </div>
                 <div>
                   <p className="text-xs uppercase">Cash-out</p>
-                  <p>{formatMoney(totals?.totalCashOut ?? 0, currency)}</p>
+                  <p>{formatAmount(totals?.totalCashOut ?? 0)}</p>
                 </div>
               </div>
 
@@ -147,7 +145,7 @@ export function LiveSeatMap({
                         <span className="min-w-0 text-muted-foreground">
                           <span className="text-foreground">
                             {formatTransactionType(transaction.type)}{" "}
-                            {formatMoney(transaction.amount, currency)}
+                            {formatAmount(transaction.amount)}
                           </span>
                           <span className="ml-1">· {formatDateTime(transaction.createdAt)}</span>
                         </span>
@@ -156,7 +154,6 @@ export function LiveSeatMap({
                           transactionId={transaction.id}
                           type={transaction.type}
                           amount={transaction.amount}
-                          currency={currency}
                           label="Undo"
                           className="h-8 shrink-0 px-2"
                         />
@@ -192,7 +189,7 @@ export function LiveSeatMap({
                     >
                       <span>{multiplier}×</span>
                       <span className="text-muted-foreground">
-                        {formatMoney(buyInAmount * multiplier, currency)}
+                        {formatAmount(buyInAmount * multiplier)}
                       </span>
                     </Button>
                   ))}

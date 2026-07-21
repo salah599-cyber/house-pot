@@ -16,7 +16,6 @@ type SeatedPlayer = {
 
 type LiveGameActionsProps = {
   gameId: string;
-  currency: string;
   status: string;
   seatedPlayers: SeatedPlayer[];
   totalsByParticipant: Record<string, ParticipantTotals>;
@@ -30,7 +29,6 @@ type LiveGameActionsProps = {
 
 export function LiveGameActions({
   gameId,
-  currency,
   status,
   seatedPlayers,
   totalsByParticipant,
@@ -45,12 +43,10 @@ export function LiveGameActions({
           <>
             <UndoLastTransactionButton
               gameId={gameId}
-              currency={currency}
               lastTransaction={lastTransaction}
             />
             <EndGameDialog
               gameId={gameId}
-              currency={currency}
               seatedPlayers={seatedPlayers}
               totalsByParticipant={totalsByParticipant}
             />
@@ -66,12 +62,10 @@ export function LiveGameActions({
           <>
             <UndoLastTransactionButton
               gameId={gameId}
-              currency={currency}
               lastTransaction={lastTransaction}
             />
             <EndGameDialog
               gameId={gameId}
-              currency={currency}
               seatedPlayers={seatedPlayers}
               totalsByParticipant={totalsByParticipant}
             />

@@ -1,6 +1,6 @@
-# House Poker
+# House Pot
 
-Invite-only home game poker ledger for hosts and players.
+Invite-only home game ledger for hosts and players.
 
 ## Phase 2 features
 
@@ -15,7 +15,7 @@ Invite-only home game poker ledger for hosts and players.
 - Admin console at `/super-admin` (Overview, Users, Games, Audit log, Settings)
 - Platform stats, disable/enable users, promote to host, cancel games
 - Immutable audit log for all key platform actions
-- Configurable platform defaults (currency, buy-in, max players)
+- Configurable platform defaults (buy-in, max players)
 
 ## Phase 4 — Polish
 
@@ -29,7 +29,7 @@ Invite-only home game poker ledger for hosts and players.
 
 - Invite-only registration (hosts invite players; no public sign-up)
 - Roles: super admin, host, player
-- Hosts create cash games with $20 or $50 buy-ins and 8–9 players
+- Hosts create cash games with 20 or 50 buy-ins and 8–9 players
 - Host auto-seated; first players to confirm online fill remaining seats
 - Guest players for a single game without creating accounts
 - Player dashboards scoped to their own games, transactions, and settlements
@@ -65,7 +65,7 @@ Copy `.env.example` to `.env.local` and fill in:
 
 In Clerk Dashboard:
 
-1. **Sign-up mode** — under User & Authentication → Restrictions, set sign-up mode to **Restricted** (invite-only) or **Public**. Do not leave sign-ups fully disabled; House Poker creates a Clerk invitation for each platform invite so invited users can register.
+1. **Sign-up mode** — under User & Authentication → Restrictions, set sign-up mode to **Restricted** (invite-only) or **Public**. Do not leave sign-ups fully disabled; House Pot creates a Clerk invitation for each platform invite so invited users can register.
 2. Set sign-in URL to `/sign-in`
 
 ### 3. Database
@@ -85,7 +85,7 @@ npm run dev
 ### Host creates a game
 
 1. Host opens `/host/games/new`
-2. Sets currency, buy-in (20 or 50), max players (8 or 9), schedule
+2. Sets buy-in (20 or 50), max players (8 or 9), schedule
 3. Adds player emails
 4. Host is auto-seated; invites trigger in-app notifications
 5. Unregistered players get a platform invite link; registered players get a game invite link

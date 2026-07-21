@@ -1,10 +1,13 @@
+import { APP_NAME } from "@/lib/constants";
+import { formatSettlementAmount, formatSettlementDate } from "@/lib/dates";
+
 export function platformInviteMessage(input: {
   inviterName: string;
   email: string;
   inviteLink: string;
 }) {
   return [
-    `You're invited to House Poker by ${input.inviterName}.`,
+    `You're invited to ${APP_NAME} by ${input.inviterName}.`,
     `Register with ${input.email} here: ${input.inviteLink}`,
   ].join("\n");
 }
@@ -30,8 +33,6 @@ export function gameInviteRegisteredMessage(input: {
     `Confirm your seat: ${input.gameInviteLink}`,
   ].join("\n");
 }
-
-import { formatSettlementAmount, formatSettlementDate } from "@/lib/dates";
 
 type SettlementLineInput = {
   fromName: string;

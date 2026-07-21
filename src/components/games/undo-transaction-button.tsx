@@ -8,7 +8,7 @@ import {
   undoLastTransactionAction,
   undoTransactionAction,
 } from "@/server/actions/session";
-import { formatMoney } from "@/lib/dates";
+import { formatAmount } from "@/lib/dates";
 import { Button } from "@/components/ui/button";
 
 type TransactionType = "buy_in" | "rebuy" | "cash_out";
@@ -29,7 +29,6 @@ type UndoTransactionButtonProps = {
   transactionId: string;
   type: TransactionType;
   amount: string;
-  currency: string;
   label?: string;
   variant?: "outline" | "ghost" | "destructive";
   size?: "default" | "sm" | "lg" | "icon";
@@ -41,7 +40,6 @@ export function UndoTransactionButton({
   transactionId,
   type,
   amount,
-  currency,
   label = "Undo",
   variant = "ghost",
   size = "sm",
@@ -58,7 +56,7 @@ export function UndoTransactionButton({
       className={className}
       disabled={isPending}
       onClick={() => {
-        const message = `Undo this ${formatTransactionType(type)} of ${formatMoney(amount, currency)}?`;
+        const message = `Undo this ${formatTransactionType(type)} of ${formatAmount(amount)}?`;
         if (!window.confirm(message)) {
           return;
         }
@@ -81,7 +79,6 @@ export function UndoTransactionButton({
 
 type UndoLastTransactionButtonProps = {
   gameId: string;
-  currency: string;
   lastTransaction: {
     id: string;
     type: TransactionType;
@@ -92,7 +89,6 @@ type UndoLastTransactionButtonProps = {
 
 export function UndoLastTransactionButton({
   gameId,
-  currency,
   lastTransaction,
 }: UndoLastTransactionButtonProps) {
   const router = useRouter();
@@ -109,7 +105,7 @@ export function UndoLastTransactionButton({
       className="min-h-11"
       disabled={isPending}
       onClick={() => {
-        const message = `Undo the last action (${lastTransaction.participantName}: ${formatTransactionType(lastTransaction.type)} ${formatMoney(lastTransaction.amount, currency)})?`;
+        const message = `Undo the last action (${lastTransaction.participantName}: ${formatTransactionType(lastTransaction.type)} ${formatAmount(lastTransaction.amount)})?`;
         if (!window.confirm(message)) {
           return;
         }

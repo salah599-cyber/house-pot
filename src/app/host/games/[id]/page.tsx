@@ -82,7 +82,7 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
           </div>
           <h1 className="page-title">{game.title}</h1>
           <p className="text-muted-foreground">
-            {formatDateTime(game.scheduledAt)} · {game.currency} · {game.defaultBuyIn} buy-in
+            {formatDateTime(game.scheduledAt)} · {game.defaultBuyIn} buy-in
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

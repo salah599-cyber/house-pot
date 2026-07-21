@@ -56,8 +56,7 @@ export default async function GameInvitePage({ params }: GameInvitePageProps) {
         <CardContent className="space-y-4 text-sm">
           <div className="grid gap-2 sm:grid-cols-2">
             <p>
-              <span className="text-muted-foreground">Buy-in:</span> {game.defaultBuyIn}{" "}
-              {game.currency}
+              <span className="text-muted-foreground">Buy-in:</span> {game.defaultBuyIn}
             </p>
             <p>
               <span className="text-muted-foreground">Seats:</span> up to {game.maxPlayers}{" "}
