@@ -8,6 +8,7 @@ import { WhatsAppShareButton } from "@/components/shared/whatsapp-share-button";
 import { DesktopTable, MobileStack, MobileStackItem } from "@/components/ui/mobile-stack";
 import { getUserRoles, requireRole } from "@/lib/auth/session";
 import { getGameForHost } from "@/lib/auth/permissions";
+import { getSettlementLineStatus } from "@/lib/games/settlement";
 import {
   calculateAllParticipantTotals,
   participantDisplayName,
@@ -227,9 +228,7 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
                     <span>{formatAmount(line.amount)}</span>
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline">
-                        {line.payerMarkedSettled && line.payeeMarkedSettled
-                          ? "Settled"
-                          : "Pending"}
+                        {getSettlementLineStatus(line)}
                       </Badge>
                       <WhatsAppShareButton
                         phone={line.fromParticipant.user?.whatsappPhone}
@@ -271,11 +270,7 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
                       <TableCell>{formatAmount(line.amount)}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap items-center gap-2">
-                          <span>
-                            {line.payerMarkedSettled && line.payeeMarkedSettled
-                              ? "Settled"
-                              : "Pending"}
-                          </span>
+                          <span>{getSettlementLineStatus(line)}</span>
                           <WhatsAppShareButton
                             phone={line.fromParticipant.user?.whatsappPhone}
                             message={whatsappMessage}

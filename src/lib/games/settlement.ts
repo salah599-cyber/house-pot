@@ -62,3 +62,21 @@ export function validateSettlementBalance(entries: SettlementEntry[]) {
 function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
 }
+
+export type SettlementLineFlags = {
+  payerMarkedSettled: boolean;
+  payeeMarkedSettled: boolean;
+};
+
+export function getSettlementLineStatus(line: SettlementLineFlags) {
+  if (line.payerMarkedSettled && line.payeeMarkedSettled) {
+    return "Settled";
+  }
+  if (line.payeeMarkedSettled) {
+    return "Payee confirmed";
+  }
+  if (line.payerMarkedSettled) {
+    return "Payer confirmed";
+  }
+  return "Pending";
+}

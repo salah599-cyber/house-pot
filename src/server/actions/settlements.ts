@@ -7,6 +7,27 @@ import { requireDbUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { gameParticipants, settlementLines } from "@/lib/db/schema";
 
+function revalidateSettlementPaths(gameId: string) {
+  revalidatePath(`/player/games/${gameId}`);
+  revalidatePath(`/host/games/${gameId}`);
+  revalidatePath(`/host/games/${gameId}/live`);
+}
+
+async function markParticipantsSettledWhenComplete(
+  fromParticipantId: string,
+  toParticipantId: string,
+) {
+  await db
+    .update(gameParticipants)
+    .set({ settlementMarked: true })
+    .where(
+      or(
+        eq(gameParticipants.id, fromParticipantId),
+        eq(gameParticipants.id, toParticipantId),
+      ),
+    );
+}
+
 export async function markSettlementSettledAction(
   settlementLineId: string,
   gameId: string,
@@ -57,18 +78,13 @@ export async function markSettlementSettledAction(
     updated.payeeMarkedSettled &&
     (isPayer || isPayee)
   ) {
-    await db
-      .update(gameParticipants)
-      .set({ settlementMarked: true })
-      .where(
-        or(
-          eq(gameParticipants.id, line.fromParticipantId),
-          eq(gameParticipants.id, line.toParticipantId),
-        ),
-      );
+    await markParticipantsSettledWhenComplete(
+      line.fromParticipantId,
+      line.toParticipantId,
+    );
   }
 
-  revalidatePath(`/player/games/${gameId}`);
+  revalidateSettlementPaths(gameId);
   return { success: true };
 }
 
@@ -91,6 +107,39 @@ export async function markMySettlementCompleteAction(gameId: string) {
     .set({ settlementMarked: true })
     .where(eq(gameParticipants.id, participant.id));
 
-  revalidatePath(`/player/games/${gameId}`);
+  await db
+    .update(settlementLines)
+    .set({ payerMarkedSettled: true })
+    .where(
+      and(
+        eq(settlementLines.gameId, gameId),
+        eq(settlementLines.fromParticipantId, participant.id),
+      ),
+    );
+
+  await db
+    .update(settlementLines)
+    .set({ payeeMarkedSettled: true })
+    .where(
+      and(
+        eq(settlementLines.gameId, gameId),
+        eq(settlementLines.toParticipantId, participant.id),
+      ),
+    );
+
+  const lines = await db.query.settlementLines.findMany({
+    where: eq(settlementLines.gameId, gameId),
+  });
+
+  for (const line of lines) {
+    if (line.payerMarkedSettled && line.payeeMarkedSettled) {
+      await markParticipantsSettledWhenComplete(
+        line.fromParticipantId,
+        line.toParticipantId,
+      );
+    }
+  }
+
+  revalidateSettlementPaths(gameId);
   return { success: true };
 }
