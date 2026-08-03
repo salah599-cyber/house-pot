@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { LiveGameActions } from "@/components/games/live-game-actions";
+import { HostMarkSettlementButton } from "@/components/games/host-mark-settlement-button";
 import { LiveSeatMap } from "@/components/games/live-seat-map";
 import { LiveSessionPoller } from "@/components/games/live-session-controls";
 import { WhatsAppShareButton } from "@/components/shared/whatsapp-share-button";
@@ -202,7 +203,9 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
         <Card>
           <CardHeader>
             <CardTitle>Settlement transfers</CardTitle>
-            <CardDescription>Who pays whom after the game.</CardDescription>
+            <CardDescription>
+              Who pays whom after the game. Mark transfers settled once payment is confirmed.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <MobileStack>
@@ -230,6 +233,15 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
                       <Badge variant="outline">
                         {getSettlementLineStatus(line)}
                       </Badge>
+                      <HostMarkSettlementButton
+                        gameId={game.id}
+                        settlementLineId={line.id}
+                        fromName={participantDisplayName(line.fromParticipant)}
+                        toName={participantDisplayName(line.toParticipant)}
+                        amount={line.amount}
+                        payerMarkedSettled={line.payerMarkedSettled}
+                        payeeMarkedSettled={line.payeeMarkedSettled}
+                      />
                       <WhatsAppShareButton
                         phone={line.fromParticipant.user?.whatsappPhone}
                         message={whatsappMessage}
@@ -271,6 +283,15 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
                       <TableCell>
                         <div className="flex flex-wrap items-center gap-2">
                           <span>{getSettlementLineStatus(line)}</span>
+                          <HostMarkSettlementButton
+                            gameId={game.id}
+                            settlementLineId={line.id}
+                            fromName={participantDisplayName(line.fromParticipant)}
+                            toName={participantDisplayName(line.toParticipant)}
+                            amount={line.amount}
+                            payerMarkedSettled={line.payerMarkedSettled}
+                            payeeMarkedSettled={line.payeeMarkedSettled}
+                          />
                           <WhatsAppShareButton
                             phone={line.fromParticipant.user?.whatsappPhone}
                             message={whatsappMessage}
