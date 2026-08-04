@@ -2,17 +2,19 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { LiveGameActions } from "@/components/games/live-game-actions";
+import { HostMarkSettlementButton } from "@/components/games/host-mark-settlement-button";
 import { LiveSeatMap } from "@/components/games/live-seat-map";
 import { LiveSessionPoller } from "@/components/games/live-session-controls";
 import { WhatsAppShareButton } from "@/components/shared/whatsapp-share-button";
 import { DesktopTable, MobileStack, MobileStackItem } from "@/components/ui/mobile-stack";
 import { getUserRoles, requireRole } from "@/lib/auth/session";
 import { getGameForHost } from "@/lib/auth/permissions";
+import { getSettlementLineStatus } from "@/lib/games/settlement";
 import {
   calculateAllParticipantTotals,
   participantDisplayName,
 } from "@/lib/games/totals";
-import { formatDateTime, formatMoney } from "@/lib/dates";
+import { formatAmount, formatDateTime } from "@/lib/dates";
 import { buildSettlementWhatsAppMessage } from "@/lib/whatsapp-messages";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -71,6 +73,23 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
   const potTotal = totals.reduce((sum, entry) => sum + entry.totalIn, 0);
   const showMobileBar = game.status === "active";
   const settlementDate = game.endedAt ?? game.scheduledAt;
+  const participantsById = Object.fromEntries(
+    seatedPlayers.map((participant) => [participant.id, participant]),
+  );
+  const sortedTransactions = [...game.transactions].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+  const latestTransaction = sortedTransactions[0];
+  const lastTransaction = latestTransaction
+    ? {
+        id: latestTransaction.id,
+        type: latestTransaction.type,
+        amount: latestTransaction.amount,
+        participantName: participantDisplayName(
+          participantsById[latestTransaction.participantId] ?? { guestName: "Player" },
+        ),
+      }
+    : null;
 
   return (
     <div className={`flex w-full flex-col gap-6 ${showMobileBar ? "pb-24 sm:pb-0" : ""}`}>
@@ -87,26 +106,26 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
           <h1 className="page-title">{game.title}</h1>
           <p className="text-sm text-muted-foreground sm:text-base">
             {formatDateTime(game.scheduledAt)} · Pot in play:{" "}
-            {formatMoney(potTotal, game.currency)}
+            {formatAmount(potTotal)}
           </p>
         </div>
 
         <LiveGameActions
           gameId={game.id}
-          currency={game.currency}
           status={game.status}
           seatedPlayers={seatedPlayers}
           totalsByParticipant={totalsByParticipant}
+          lastTransaction={lastTransaction}
         />
       </div>
 
       {game.status === "active" ? (
         <LiveSeatMap
           gameId={game.id}
-          currency={game.currency}
           defaultBuyIn={game.defaultBuyIn}
           seatedPlayers={seatedPlayers}
           totalsByParticipant={totalsByParticipant}
+          transactions={game.transactions}
         />
       ) : (
         <Card>
@@ -125,19 +144,19 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
                       <div>
                         <p className="text-xs uppercase">In</p>
                         <p className="text-foreground">
-                          {formatMoney(playerTotals?.totalIn ?? 0, game.currency)}
+                          {formatAmount(playerTotals?.totalIn ?? 0)}
                         </p>
                       </div>
                       <div>
                         <p className="text-xs uppercase">Out</p>
                         <p className="text-foreground">
-                          {formatMoney(playerTotals?.totalCashOut ?? 0, game.currency)}
+                          {formatAmount(playerTotals?.totalCashOut ?? 0)}
                         </p>
                       </div>
                       <div>
                         <p className="text-xs uppercase">Net</p>
                         <p className="text-foreground">
-                          {formatMoney(playerTotals?.netResult ?? 0, game.currency)}
+                          {formatAmount(playerTotals?.netResult ?? 0)}
                         </p>
                       </div>
                     </div>
@@ -162,13 +181,13 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
                       <TableRow key={player.id}>
                         <TableCell>{participantDisplayName(player)}</TableCell>
                         <TableCell>
-                          {formatMoney(playerTotals?.totalIn ?? 0, game.currency)}
+                          {formatAmount(playerTotals?.totalIn ?? 0)}
                         </TableCell>
                         <TableCell>
-                          {formatMoney(playerTotals?.totalCashOut ?? 0, game.currency)}
+                          {formatAmount(playerTotals?.totalCashOut ?? 0)}
                         </TableCell>
                         <TableCell>
-                          {formatMoney(playerTotals?.netResult ?? 0, game.currency)}
+                          {formatAmount(playerTotals?.netResult ?? 0)}
                         </TableCell>
                       </TableRow>
                     );
@@ -184,7 +203,9 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
         <Card>
           <CardHeader>
             <CardTitle>Settlement transfers</CardTitle>
-            <CardDescription>Who pays whom after the game.</CardDescription>
+            <CardDescription>
+              Who pays whom after the game. Mark transfers settled once payment is confirmed.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <MobileStack>
@@ -207,13 +228,20 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
                     {participantDisplayName(line.toParticipant)}
                   </p>
                   <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                    <span>{formatMoney(line.amount, game.currency)}</span>
+                    <span>{formatAmount(line.amount)}</span>
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline">
-                        {line.payerMarkedSettled && line.payeeMarkedSettled
-                          ? "Settled"
-                          : "Pending"}
+                        {getSettlementLineStatus(line)}
                       </Badge>
+                      <HostMarkSettlementButton
+                        gameId={game.id}
+                        settlementLineId={line.id}
+                        fromName={participantDisplayName(line.fromParticipant)}
+                        toName={participantDisplayName(line.toParticipant)}
+                        amount={line.amount}
+                        payerMarkedSettled={line.payerMarkedSettled}
+                        payeeMarkedSettled={line.payeeMarkedSettled}
+                      />
                       <WhatsAppShareButton
                         phone={line.fromParticipant.user?.whatsappPhone}
                         message={whatsappMessage}
@@ -251,14 +279,19 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
                     <TableRow key={line.id}>
                       <TableCell>{participantDisplayName(line.fromParticipant)}</TableCell>
                       <TableCell>{participantDisplayName(line.toParticipant)}</TableCell>
-                      <TableCell>{formatMoney(line.amount, game.currency)}</TableCell>
+                      <TableCell>{formatAmount(line.amount)}</TableCell>
                       <TableCell>
                         <div className="flex flex-wrap items-center gap-2">
-                          <span>
-                            {line.payerMarkedSettled && line.payeeMarkedSettled
-                              ? "Settled"
-                              : "Pending"}
-                          </span>
+                          <span>{getSettlementLineStatus(line)}</span>
+                          <HostMarkSettlementButton
+                            gameId={game.id}
+                            settlementLineId={line.id}
+                            fromName={participantDisplayName(line.fromParticipant)}
+                            toName={participantDisplayName(line.toParticipant)}
+                            amount={line.amount}
+                            payerMarkedSettled={line.payerMarkedSettled}
+                            payeeMarkedSettled={line.payeeMarkedSettled}
+                          />
                           <WhatsAppShareButton
                             phone={line.fromParticipant.user?.whatsappPhone}
                             message={whatsappMessage}

@@ -1,8 +1,9 @@
 "use server";
 
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, like, or } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
+import { APP_NAME } from "@/lib/constants";
 import { getDefaultDashboardPath } from "@/lib/auth/roles";
 import { logAudit } from "@/lib/audit";
 import {
@@ -17,7 +18,15 @@ import {
   seedSuperAdminIfNeeded,
 } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { gameInvites, notifications, platformInvites, users } from "@/lib/db/schema";
+import {
+  gameInvites,
+  gameParticipants,
+  notifications,
+  platformInvites,
+  users,
+} from "@/lib/db/schema";
+import { isGameInviteActive } from "@/lib/game-invites";
+import { getAppUrl } from "@/lib/invites";
 import { getPlatformInviteByToken } from "@/lib/queries/invites";
 
 export async function completeOnboardingAction(
@@ -94,17 +103,28 @@ export async function completeOnboardingAction(
   const isSuperAdminSeed = emailMatchesSuperAdmin && setupTokenValid;
 
   if (!inviteAccepted && !isSuperAdminSeed) {
-    if (emailMatchesSuperAdmin && requiredSetupToken && !setupTokenValid) {
+    const pendingGameInvite = await db.query.gameInvites.findFirst({
+      where: and(
+        eq(gameInvites.email, email),
+        isNull(gameInvites.userId),
+        inArray(gameInvites.status, ["pending", "registered"]),
+        gt(gameInvites.expiresAt, new Date()),
+      ),
+    });
+
+    if (pendingGameInvite && isGameInviteActive(pendingGameInvite)) {
+      inviteAccepted = true;
+    } else if (emailMatchesSuperAdmin && requiredSetupToken && !setupTokenValid) {
       return {
         error:
           "Super admin setup requires a valid setup token. Use the onboarding link provided during deployment.",
       };
+    } else {
+      return {
+        error:
+          `${APP_NAME} is invite-only. Ask a host for an invitation link before registering.`,
+      };
     }
-
-    return {
-      error:
-        "House Poker is invite-only. Ask a host for an invitation link before registering.",
-    };
   }
 
   const displayName =
@@ -137,6 +157,42 @@ export async function completeOnboardingAction(
     .update(gameInvites)
     .set({ userId: user.id })
     .where(and(eq(gameInvites.email, email), isNull(gameInvites.userId)));
+
+  await db
+    .update(gameParticipants)
+    .set({ userId: user.id })
+    .where(and(eq(gameParticipants.invitedEmail, email), isNull(gameParticipants.userId)));
+
+  const linkedGameInvites = await db.query.gameInvites.findMany({
+    where: eq(gameInvites.userId, user.id),
+    with: { game: true },
+  });
+
+  for (const invite of linkedGameInvites) {
+    const gameInviteLink = getAppUrl(`/game-invite/${invite.token}`);
+    const registrationLinkPattern = `%game=${invite.token}%`;
+
+    await db
+      .update(notifications)
+      .set({
+        type: "game_invite",
+        link: gameInviteLink,
+        title: `You're invited to ${invite.game.title}`,
+        body: "Confirm your spot before seats fill up.",
+      })
+      .where(
+        and(
+          eq(notifications.email, email),
+          or(
+            like(notifications.link, registrationLinkPattern),
+            and(
+              eq(notifications.type, "platform_invite"),
+              like(notifications.body, `%${invite.game.title}%`),
+            ),
+          ),
+        ),
+      );
+  }
 
   await logAudit({
     actorUserId: user.id,

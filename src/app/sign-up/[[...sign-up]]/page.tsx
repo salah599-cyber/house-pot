@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { APP_NAME } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -10,7 +11,7 @@ export default function SignUpPage() {
         <CardHeader>
           <CardTitle>Invite required</CardTitle>
           <CardDescription>
-            House Poker is invite-only. You need a personal invitation link from a host or
+            {APP_NAME} is invite-only. You need a personal invitation link from a host or
             admin before you can create an account.
           </CardDescription>
         </CardHeader>

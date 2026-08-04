@@ -6,7 +6,10 @@ import { useState, useTransition } from "react";
 import { FormFeedback } from "@/components/admin/form-feedback";
 import { InvitePlayersFields } from "@/components/games/invite-players-fields";
 import { invitePlayersAction } from "@/server/actions/games";
-import type { InvitableRegisteredPlayer } from "@/lib/queries/players";
+import type {
+  InvitablePlatformInvitee,
+  InvitableRegisteredPlayer,
+} from "@/lib/queries/players";
 import { Button } from "@/components/ui/button";
 
 type FeedbackState = {
@@ -17,9 +20,11 @@ type FeedbackState = {
 export function InvitePlayersForm({
   gameId,
   registeredPlayers,
+  pendingInvitees,
 }: {
   gameId: string;
   registeredPlayers: InvitableRegisteredPlayer[];
+  pendingInvitees: InvitablePlatformInvitee[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -77,7 +82,9 @@ export function InvitePlayersForm({
       {feedback ? <FormFeedback type={feedback.type} message={feedback.message} /> : null}
       <InvitePlayersFields
         registeredPlayers={registeredPlayers}
+        pendingInvitees={pendingInvitees}
         guestNamesFieldId={`guestNames-${gameId}`}
+        inviteEmailsFieldId={`inviteEmails-${gameId}`}
       />
       <Button type="submit" size="sm" disabled={isPending}>
         {isPending ? "Saving..." : "Add players"}

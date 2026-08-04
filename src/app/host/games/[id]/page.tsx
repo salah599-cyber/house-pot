@@ -15,7 +15,7 @@ import { getGameForHost } from "@/lib/auth/permissions";
 import { formatDateTime } from "@/lib/dates";
 import { isGameInviteActive } from "@/lib/game-invites";
 import { getAppUrl } from "@/lib/invites";
-import { getInvitableRegisteredPlayers } from "@/lib/queries/players";
+import { getInvitablePlatformInvitees, getInvitableRegisteredPlayers } from "@/lib/queries/players";
 import {
   gameInviteRegisteredMessage,
   gameInviteUnregisteredMessage,
@@ -43,6 +43,10 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
   const { id } = await params;
   const game = await getGameForHost(id, user.id, getUserRoles(user));
   const registeredPlayers = await getInvitableRegisteredPlayers({
+    hostUserId: user.id,
+    excludeGameId: id,
+  });
+  const pendingInvitees = await getInvitablePlatformInvitees({
     hostUserId: user.id,
     excludeGameId: id,
   });
@@ -78,7 +82,7 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
           </div>
           <h1 className="page-title">{game.title}</h1>
           <p className="text-muted-foreground">
-            {formatDateTime(game.scheduledAt)} · {game.currency} · {game.defaultBuyIn} buy-in
+            {formatDateTime(game.scheduledAt)} · {game.defaultBuyIn} buy-in
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -212,7 +216,11 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <InvitePlayersForm gameId={game.id} registeredPlayers={registeredPlayers} />
+                  <InvitePlayersForm
+                    gameId={game.id}
+                    registeredPlayers={registeredPlayers}
+                    pendingInvitees={pendingInvitees}
+                  />
                 </CardContent>
               </Card>
 

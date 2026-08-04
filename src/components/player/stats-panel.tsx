@@ -1,4 +1,4 @@
-import { formatMoney } from "@/lib/dates";
+import { formatAmount, formatSettlementDate } from "@/lib/dates";
 
 type StatsPanelProps = {
   stats: {
@@ -9,12 +9,10 @@ type StatsPanelProps = {
     totalNet: number;
     avgSessionResult: number;
     totalBuyInVolume: number;
-    primaryCurrency: string;
     sessionResults: Array<{
       title: string;
       scheduledAt: Date;
       netResult: number;
-      currency: string;
     }>;
     netByMonth: Array<{ month: string; net: number }>;
   };
@@ -33,12 +31,12 @@ export function StatsPanel({ stats }: StatsPanelProps) {
         <StatCard label="Win rate" value={`${stats.winRate.toFixed(0)}%`} />
         <StatCard
           label="Total P&L"
-          value={formatMoney(stats.totalNet, stats.primaryCurrency)}
+          value={formatAmount(stats.totalNet)}
           highlight={stats.totalNet >= 0 ? "positive" : "negative"}
         />
         <StatCard
           label="Avg session"
-          value={formatMoney(stats.avgSessionResult, stats.primaryCurrency)}
+          value={formatAmount(stats.avgSessionResult)}
         />
       </div>
 
@@ -54,7 +52,7 @@ export function StatsPanel({ stats }: StatsPanelProps) {
                   <div className="mb-1 flex justify-between text-sm">
                     <span>{entry.month}</span>
                     <span className={entry.net >= 0 ? "text-emerald-400" : "text-rose-400"}>
-                      {formatMoney(entry.net, stats.primaryCurrency)}
+                      {formatAmount(entry.net)}
                     </span>
                   </div>
                   <div className="h-2 rounded-full bg-muted">
@@ -83,7 +81,7 @@ export function StatsPanel({ stats }: StatsPanelProps) {
                   <div>
                     <p className="font-medium">{session.title}</p>
                     <p className="text-muted-foreground">
-                      {new Date(session.scheduledAt).toLocaleDateString()}
+                      {formatSettlementDate(session.scheduledAt)}
                     </p>
                   </div>
                   <span
@@ -91,7 +89,7 @@ export function StatsPanel({ stats }: StatsPanelProps) {
                       session.netResult >= 0 ? "text-emerald-400" : "text-rose-400"
                     }
                   >
-                    {formatMoney(session.netResult, session.currency)}
+                    {formatAmount(session.netResult)}
                   </span>
                 </div>
               ))}

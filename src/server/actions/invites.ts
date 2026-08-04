@@ -4,6 +4,7 @@ import { and, desc, eq, gt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { APP_NAME } from "@/lib/constants";
 import { logAudit } from "@/lib/audit";
 import { grantHostRole, getUserRoles, requireDbUser, requireRole } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -113,7 +114,7 @@ export async function createPlatformInviteForEmail({
     }
 
     return {
-      error: `${normalizedEmail} is already registered on House Poker.`,
+      error: `${normalizedEmail} is already registered on ${APP_NAME}.`,
     };
   }
 

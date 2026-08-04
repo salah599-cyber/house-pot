@@ -2,7 +2,7 @@
 
 import { and, desc, eq, inArray } from "drizzle-orm";
 
-import { DEFAULT_CURRENCY } from "@/lib/constants";
+import { APP_TIMEZONE } from "@/lib/constants";
 import { calculateParticipantTotals } from "@/lib/games/totals";
 import { requireDbUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -45,7 +45,6 @@ export async function getPlayerStats() {
     return {
       gameId: participation.gameId,
       title: participation.game.title,
-      currency: participation.game.currency,
       scheduledAt: participation.game.scheduledAt,
       netResult: totals.netResult,
       totalIn: totals.totalIn,
@@ -63,6 +62,7 @@ export async function getPlayerStats() {
     const month = new Date(session.scheduledAt).toLocaleString("en-US", {
       month: "short",
       year: "numeric",
+      timeZone: APP_TIMEZONE,
     });
     acc[month] = (acc[month] ?? 0) + session.netResult;
     return acc;
@@ -82,6 +82,5 @@ export async function getPlayerStats() {
     totalBuyInVolume,
     sessionResults: sessionResults.slice(0, 20),
     netByMonth: Object.entries(netByMonth).map(([month, net]) => ({ month, net })),
-    primaryCurrency: sessionResults[0]?.currency ?? DEFAULT_CURRENCY,
   };
 }

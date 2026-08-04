@@ -7,8 +7,9 @@ import {
   recordQuickBuyInAction,
   recordTransactionAction,
 } from "@/server/actions/session";
+import { UndoTransactionButton } from "@/components/games/undo-transaction-button";
 import { REBUY_PRESET_MULTIPLIERS } from "@/lib/constants";
-import { formatMoney } from "@/lib/dates";
+import { formatAmount, formatDateTime } from "@/lib/dates";
 import type { ParticipantTotals } from "@/lib/games/totals";
 import { participantDisplayName } from "@/lib/games/totals";
 import { Button } from "@/components/ui/button";
@@ -22,20 +23,28 @@ type SeatedPlayer = {
   guestName?: string | null;
 };
 
+type GameTransaction = {
+  id: string;
+  participantId: string;
+  type: "buy_in" | "rebuy" | "cash_out";
+  amount: string;
+  createdAt: Date | string;
+};
+
 type LiveSeatMapProps = {
   gameId: string;
-  currency: string;
   defaultBuyIn: string;
   seatedPlayers: SeatedPlayer[];
   totalsByParticipant: Record<string, ParticipantTotals>;
+  transactions: GameTransaction[];
 };
 
 export function LiveSeatMap({
   gameId,
-  currency,
   defaultBuyIn,
   seatedPlayers,
   totalsByParticipant,
+  transactions,
 }: LiveSeatMapProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -60,11 +69,35 @@ export function LiveSeatMap({
     });
   }
 
+  function formatTransactionType(type: GameTransaction["type"]) {
+    switch (type) {
+      case "buy_in":
+        return "Buy-in";
+      case "rebuy":
+        return "Rebuy";
+      case "cash_out":
+        return "Cash-out";
+    }
+  }
+
+  const transactionsByParticipant = transactions.reduce<Record<string, GameTransaction[]>>(
+    (groups, transaction) => {
+      const existing = groups[transaction.participantId] ?? [];
+      existing.push(transaction);
+      groups[transaction.participantId] = existing;
+      return groups;
+    },
+    {},
+  );
+
   return (
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {sorted.map((player) => {
         const totals = totalsByParticipant[player.id];
         const hasBuyIn = (totals?.totalBuyIn ?? 0) > 0;
+        const playerTransactions = [...(transactionsByParticipant[player.id] ?? [])].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
 
         return (
           <Card key={player.id} className="border-border/80 shadow-sm">
@@ -78,7 +111,7 @@ export function LiveSeatMap({
                     totals && totals.netResult >= 0 ? "text-emerald-400" : "text-rose-400"
                   }
                 >
-                  {totals ? formatMoney(totals.netResult, currency) : formatMoney(0, currency)}
+                  {totals ? formatAmount(totals.netResult) : formatAmount(0)}
                 </span>
               </CardTitle>
             </CardHeader>
@@ -86,17 +119,49 @@ export function LiveSeatMap({
               <div className="grid grid-cols-3 gap-2 text-muted-foreground">
                 <div>
                   <p className="text-xs uppercase">Buy-in</p>
-                  <p>{formatMoney(totals?.totalBuyIn ?? 0, currency)}</p>
+                  <p>{formatAmount(totals?.totalBuyIn ?? 0)}</p>
                 </div>
                 <div>
                   <p className="text-xs uppercase">Rebuy</p>
-                  <p>{formatMoney(totals?.totalRebuy ?? 0, currency)}</p>
+                  <p>{formatAmount(totals?.totalRebuy ?? 0)}</p>
                 </div>
                 <div>
                   <p className="text-xs uppercase">Cash-out</p>
-                  <p>{formatMoney(totals?.totalCashOut ?? 0, currency)}</p>
+                  <p>{formatAmount(totals?.totalCashOut ?? 0)}</p>
                 </div>
               </div>
+
+              {playerTransactions.length > 0 ? (
+                <div className="space-y-2 rounded-lg border border-border/60 p-2">
+                  <p className="text-xs font-medium uppercase text-muted-foreground">
+                    Recent actions
+                  </p>
+                  <ul className="space-y-1">
+                    {playerTransactions.map((transaction) => (
+                      <li
+                        key={transaction.id}
+                        className="flex items-center justify-between gap-2 text-xs"
+                      >
+                        <span className="min-w-0 text-muted-foreground">
+                          <span className="text-foreground">
+                            {formatTransactionType(transaction.type)}{" "}
+                            {formatAmount(transaction.amount)}
+                          </span>
+                          <span className="ml-1">· {formatDateTime(transaction.createdAt)}</span>
+                        </span>
+                        <UndoTransactionButton
+                          gameId={gameId}
+                          transactionId={transaction.id}
+                          type={transaction.type}
+                          amount={transaction.amount}
+                          label="Undo"
+                          className="h-8 shrink-0 px-2"
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
 
               <div className="space-y-2">
                 <Button
@@ -124,7 +189,7 @@ export function LiveSeatMap({
                     >
                       <span>{multiplier}×</span>
                       <span className="text-muted-foreground">
-                        {formatMoney(buyInAmount * multiplier, currency)}
+                        {formatAmount(buyInAmount * multiplier)}
                       </span>
                     </Button>
                   ))}

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { SettlementPanel } from "@/components/games/settlement-panel";
 import { LiveSessionPoller } from "@/components/games/live-session-controls";
 import { calculateParticipantTotals } from "@/lib/games/totals";
-import { formatDateTime, formatMoney } from "@/lib/dates";
+import { formatAmount, formatDateTime } from "@/lib/dates";
 import { requireDbUser } from "@/lib/auth/session";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -67,7 +67,7 @@ export default async function PlayerGamePage({ params }: PlayerGamePageProps) {
         <Card>
           <CardHeader>
             <CardDescription>Total in</CardDescription>
-            <CardTitle>{formatMoney(myTotals.totalIn, game.currency)}</CardTitle>
+            <CardTitle>{formatAmount(myTotals.totalIn)}</CardTitle>
           </CardHeader>
         </Card>
         <Card>
@@ -76,7 +76,7 @@ export default async function PlayerGamePage({ params }: PlayerGamePageProps) {
             <CardTitle
               className={myTotals.netResult >= 0 ? "text-emerald-400" : "text-rose-400"}
             >
-              {formatMoney(myTotals.netResult, game.currency)}
+              {formatAmount(myTotals.netResult)}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -108,7 +108,7 @@ export default async function PlayerGamePage({ params }: PlayerGamePageProps) {
                   <TableRow key={transaction.id}>
                     <TableCell>{transaction.type}</TableCell>
                     <TableCell>
-                      {formatMoney(transaction.amount, game.currency)}
+                      {formatAmount(transaction.amount)}
                     </TableCell>
                     <TableCell>{formatDateTime(transaction.createdAt)}</TableCell>
                   </TableRow>
@@ -123,7 +123,6 @@ export default async function PlayerGamePage({ params }: PlayerGamePageProps) {
         <SettlementPanel
           gameId={game.id}
           gameDate={game.endedAt ?? game.scheduledAt}
-          currency={game.currency}
           participantId={participant.id}
           settlements={mySettlements}
           settlementMarked={participant.settlementMarked}

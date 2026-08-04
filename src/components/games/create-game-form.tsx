@@ -6,8 +6,11 @@ import { useState, useTransition } from "react";
 import { FormFeedback } from "@/components/admin/form-feedback";
 import { InvitePlayersFields } from "@/components/games/invite-players-fields";
 import { createGameAction } from "@/server/actions/games";
-import { BUY_IN_OPTIONS, CURRENCIES, DEFAULT_CURRENCY, DEFAULT_MAX_PLAYERS } from "@/lib/constants";
-import type { InvitableRegisteredPlayer } from "@/lib/queries/players";
+import { BUY_IN_OPTIONS, DEFAULT_MAX_PLAYERS } from "@/lib/constants";
+import type {
+  InvitablePlatformInvitee,
+  InvitableRegisteredPlayer,
+} from "@/lib/queries/players";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,8 +24,8 @@ import {
 
 type CreateGameFormProps = {
   registeredPlayers: InvitableRegisteredPlayer[];
+  pendingInvitees: InvitablePlatformInvitee[];
   defaults?: {
-    currency: string;
     defaultBuyIn: string;
     maxPlayers: string;
   };
@@ -33,7 +36,7 @@ type FeedbackState = {
   message: string;
 } | null;
 
-export function CreateGameForm({ registeredPlayers, defaults }: CreateGameFormProps) {
+export function CreateGameForm({ registeredPlayers, pendingInvitees, defaults }: CreateGameFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<FeedbackState>(null);
@@ -89,22 +92,6 @@ export function CreateGameForm({ registeredPlayers, defaults }: CreateGameFormPr
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="currency">Currency</Label>
-          <Select name="currency" defaultValue={defaults?.currency ?? DEFAULT_CURRENCY}>
-            <SelectTrigger id="currency">
-              <SelectValue placeholder="Select currency" />
-            </SelectTrigger>
-            <SelectContent>
-              {CURRENCIES.map((currency) => (
-                <SelectItem key={currency.code} value={currency.code}>
-                  {currency.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
           <Label htmlFor="defaultBuyIn">First buy-in</Label>
           <Select name="defaultBuyIn" defaultValue={defaults?.defaultBuyIn ?? "50"}>
             <SelectTrigger id="defaultBuyIn">
@@ -119,9 +106,7 @@ export function CreateGameForm({ registeredPlayers, defaults }: CreateGameFormPr
             </SelectContent>
           </Select>
         </div>
-      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="maxPlayers">Max players (including host)</Label>
           <Select
@@ -137,19 +122,24 @@ export function CreateGameForm({ registeredPlayers, defaults }: CreateGameFormPr
             </SelectContent>
           </Select>
         </div>
+      </div>
 
+      <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="scheduledAt">Date & time</Label>
           <Input id="scheduledAt" name="scheduledAt" type="datetime-local" required />
         </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="location">Location (optional)</Label>
+          <Input id="location" name="location" placeholder="Smith's place" />
+        </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="location">Location (optional)</Label>
-        <Input id="location" name="location" placeholder="Smith's place" />
-      </div>
-
-      <InvitePlayersFields registeredPlayers={registeredPlayers} />
+      <InvitePlayersFields
+        registeredPlayers={registeredPlayers}
+        pendingInvitees={pendingInvitees}
+      />
 
       <Button type="submit" disabled={isPending}>
         {isPending ? "Creating..." : "Create game"}

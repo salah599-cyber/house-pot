@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
+import { APP_NAME } from "@/lib/constants";
 import { assertGameHost } from "@/lib/auth/permissions";
 import { getUserRoles, requireDbUser } from "@/lib/auth/session";
 import {
@@ -54,10 +55,9 @@ export async function GET(_request: Request, context: RouteContext) {
   );
 
   const lines: string[] = [
-    "House Poker Game Export",
+    `${APP_NAME} Game Export`,
     `Title,${csv(game.title)}`,
     `Status,${game.status}`,
-    `Currency,${game.currency}`,
     `Scheduled,${game.scheduledAt?.toISOString() ?? ""}`,
     "",
     "Player,Seat,Buy-in,Rebuy,Cash-out,Net",

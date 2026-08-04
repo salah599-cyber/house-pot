@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 
+import { APP_NAME } from "@/lib/constants";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { isHost, isSuperAdmin } from "@/lib/auth/roles";
 import { getCurrentDbUser, getUserRoles } from "@/lib/auth/session";
@@ -16,7 +17,7 @@ export async function AppHeader() {
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur supports-[padding:max(0px)]:pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-4 sm:h-16">
         <Link href="/" className="text-base font-semibold tracking-tight sm:text-lg">
-          House Poker
+          {APP_NAME}
         </Link>
 
         <nav className="flex items-center gap-2 sm:gap-3">
