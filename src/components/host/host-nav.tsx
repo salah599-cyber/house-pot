@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { NavLink } from "@/components/ui/nav-link";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -23,7 +23,7 @@ export function HostNav() {
             : pathname === link.href || pathname.startsWith(`${link.href}/`);
 
         return (
-          <Link
+          <NavLink
             key={link.href}
             href={link.href}
             className={cn(
@@ -34,7 +34,7 @@ export function HostNav() {
             )}
           >
             {link.label}
-          </Link>
+          </NavLink>
         );
       })}
     </nav>

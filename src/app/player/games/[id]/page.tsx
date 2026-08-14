@@ -37,7 +37,9 @@ export default async function PlayerGamePage({ params }: PlayerGamePageProps) {
 
   return (
     <div className="page-shell max-w-4xl">
-      {game.status === "active" ? <LiveSessionPoller /> : null}
+      {game.status === "active" ? (
+        <LiveSessionPoller gameId={game.id} gameStatus={game.status} />
+      ) : null}
 
       <div>
         <div className="mb-2 flex gap-2">

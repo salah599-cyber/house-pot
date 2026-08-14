@@ -1,42 +1,43 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { and, eq } from "drizzle-orm";
+import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { isHost, isPlayer, isSuperAdmin } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { userRoles, users, type Role } from "@/lib/db/schema";
 
-export async function getClerkUser() {
+export const getClerkUser = cache(async () => {
   const user = await currentUser();
   if (!user) return null;
   return user;
-}
+});
 
-export async function requireAuth() {
+export const requireAuth = cache(async () => {
   const { isAuthenticated, userId } = await auth();
   if (!isAuthenticated || !userId) {
     redirect("/sign-in");
   }
   return userId;
-}
+});
 
-export async function getDbUserByClerkId(clerkId: string) {
+export const getDbUserByClerkId = cache(async (clerkId: string) => {
   return db.query.users.findFirst({
     where: eq(users.clerkId, clerkId),
     with: {
       roles: true,
     },
   });
-}
+});
 
-export async function getCurrentDbUser() {
+export const getCurrentDbUser = cache(async () => {
   const clerkUser = await getClerkUser();
   if (!clerkUser) return null;
 
   return getDbUserByClerkId(clerkUser.id);
-}
+});
 
-export async function requireDbUser() {
+export const requireDbUser = cache(async () => {
   const clerkId = await requireAuth();
   const user = await getDbUserByClerkId(clerkId);
 
@@ -49,13 +50,13 @@ export async function requireDbUser() {
   }
 
   return user;
-}
+});
 
 export function getUserRoles(user: { roles: { role: Role }[] }) {
   return user.roles.map((entry) => entry.role);
 }
 
-export async function requireRole(role: Role) {
+export const requireRole = cache(async (role: Role) => {
   const user = await requireDbUser();
   const roles = getUserRoles(user);
 
@@ -71,7 +72,7 @@ export async function requireRole(role: Role) {
   }
 
   return user;
-}
+});
 
 export async function seedSuperAdminIfNeeded(email: string, userId: string) {
   const superAdminEmail = process.env.SUPER_ADMIN_EMAIL?.toLowerCase();

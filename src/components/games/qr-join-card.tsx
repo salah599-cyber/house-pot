@@ -1,15 +1,13 @@
-import Image from "next/image";
-
 import { getAppUrl } from "@/lib/invites";
+import { QrJoinImage } from "@/components/games/qr-join-image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type QrJoinCardProps = {
-  gameId: string;
   joinCode: string;
   title: string;
 };
 
-export function QrJoinCard({ gameId, joinCode, title }: QrJoinCardProps) {
+export function QrJoinCard({ joinCode, title }: QrJoinCardProps) {
   const joinUrl = getAppUrl(`/join/${joinCode}`);
 
   return (
@@ -21,14 +19,7 @@ export function QrJoinCard({ gameId, joinCode, title }: QrJoinCardProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
-        <Image
-          src={`/api/games/${gameId}/qr`}
-          alt={`QR code for ${title}`}
-          width={160}
-          height={160}
-          className="rounded-lg border border-border bg-white p-2"
-          unoptimized
-        />
+        <QrJoinImage joinUrl={joinUrl} title={title} />
         <div className="space-y-2 text-sm">
           <p>
             <span className="text-muted-foreground">Join code:</span>{" "}

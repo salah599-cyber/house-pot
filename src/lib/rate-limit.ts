@@ -3,17 +3,16 @@ import { Redis } from "@upstash/redis";
 
 type RateLimitResult = { success: true } | { success: false; error: string };
 
-function getRedis() {
+const redis = (() => {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) {
     return null;
   }
   return new Redis({ url, token });
-}
+})();
 
 function createLimiter(requests: number, window: `${number} ${"s" | "m" | "h" | "d"}`) {
-  const redis = getRedis();
   if (!redis) {
     return null;
   }
@@ -25,18 +24,18 @@ function createLimiter(requests: number, window: `${number} ${"s" | "m" | "h" | 
 }
 
 const limiters = {
-  join: () => createLimiter(30, "1 m"),
-  invitePage: () => createLimiter(40, "1 m"),
-  onboarding: () => createLimiter(10, "1 m"),
-  webhook: () => createLimiter(120, "1 m"),
-  sendInvites: () => createLimiter(60, "1 h"),
+  join: createLimiter(30, "1 m"),
+  invitePage: createLimiter(40, "1 m"),
+  onboarding: createLimiter(10, "1 m"),
+  webhook: createLimiter(120, "1 m"),
+  sendInvites: createLimiter(60, "1 h"),
 };
 
 async function runLimit(
   bucket: keyof typeof limiters,
   identifier: string,
 ): Promise<RateLimitResult> {
-  const limiter = limiters[bucket]();
+  const limiter = limiters[bucket];
   if (!limiter) {
     return { success: true };
   }
@@ -81,5 +80,5 @@ export async function rateLimitSendInvites(userId: string) {
 }
 
 export function isRateLimitConfigured() {
-  return Boolean(getRedis());
+  return Boolean(redis);
 }
