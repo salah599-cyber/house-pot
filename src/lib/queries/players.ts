@@ -39,7 +39,7 @@ export async function getInvitableRegisteredPlayers(options?: {
     orderBy: [users.displayName],
   });
 
-  let excludeUserIds = new Set<string>([host.id]);
+  const excludeUserIds = new Set<string>([host.id]);
 
   if (options?.excludeGameId) {
     const participants = await db.query.gameParticipants.findMany({
