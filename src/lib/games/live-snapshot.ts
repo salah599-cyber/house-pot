@@ -1,14 +1,13 @@
+import "server-only";
+
 import { and, count, eq, max } from "drizzle-orm";
 
 import { isHost, isSuperAdmin } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { gameParticipants, games, transactions, type Role } from "@/lib/db/schema";
+import type { GameLiveSnapshot } from "@/lib/games/live-snapshot-client";
 
-export type GameLiveSnapshot = {
-  status: (typeof games.$inferSelect)["status"];
-  txCount: number;
-  latestTxAt: string | null;
-};
+export type { GameLiveSnapshot } from "@/lib/games/live-snapshot-client";
 
 export async function canAccessGameLiveSnapshot(
   gameId: string,
@@ -63,8 +62,4 @@ export async function getGameLiveSnapshot(gameId: string): Promise<GameLiveSnaps
     txCount: Number(txStats?.txCount ?? 0),
     latestTxAt: txStats?.latestTxAt?.toISOString() ?? null,
   };
-}
-
-export function serializeLiveSnapshot(snapshot: GameLiveSnapshot) {
-  return JSON.stringify(snapshot);
 }

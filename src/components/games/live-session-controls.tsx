@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useTransition } from "react";
 
-import { serializeLiveSnapshot, type GameLiveSnapshot } from "@/lib/games/live-snapshot";
+import { serializeLiveSnapshot, type GameLiveSnapshot } from "@/lib/games/live-snapshot-client";
 import { startGameAction } from "@/server/actions/session";
 import { Button } from "@/components/ui/button";
 
