@@ -1,13 +1,12 @@
 import { HostNav } from "@/components/host/host-nav";
-import { requireDbUser, requireRole } from "@/lib/auth/session";
+import { requireRole } from "@/lib/auth/session";
 
 export default async function HostLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  await requireRole("host");
-  const dbUser = await requireDbUser();
+  const dbUser = await requireRole("host");
 
   return (
     <div className="page-shell">

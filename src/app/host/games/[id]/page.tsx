@@ -203,7 +203,7 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
         </Card>
 
         <div className="space-y-6">
-          <QrJoinCard gameId={game.id} joinCode={game.joinCode} title={game.title} />
+          <QrJoinCard joinCode={game.joinCode} title={game.title} />
 
           {game.status === "open" ? (
             <>

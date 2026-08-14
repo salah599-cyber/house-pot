@@ -93,7 +93,7 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
 
   return (
     <div className={`flex w-full flex-col gap-6 ${showMobileBar ? "pb-24 sm:pb-0" : ""}`}>
-      <LiveSessionPoller />
+      <LiveSessionPoller gameId={game.id} gameStatus={game.status} />
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>

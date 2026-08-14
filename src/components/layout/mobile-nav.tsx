@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { MenuIcon } from "lucide-react";
@@ -13,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { NavLink } from "@/components/ui/nav-link";
 import { cn } from "@/lib/utils";
 
 type MobileNavProps = {
@@ -59,7 +59,7 @@ export function MobileNav({ isHost, isSuperAdmin }: MobileNavProps) {
               (link.href !== "/player/dashboard" && pathname.startsWith(link.href));
 
             return (
-              <Link
+              <NavLink
                 key={link.href}
                 href={link.href}
                 onClick={() => setOpen(false)}
@@ -71,7 +71,7 @@ export function MobileNav({ isHost, isSuperAdmin }: MobileNavProps) {
                 )}
               >
                 {link.label}
-              </Link>
+              </NavLink>
             );
           })}
         </nav>

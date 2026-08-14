@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { NavLink } from "@/components/ui/nav-link";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -22,7 +22,7 @@ export function SuperAdminNav() {
       {links.map((link) => {
         const active = link.exact ? pathname === link.href : pathname.startsWith(link.href);
         return (
-          <Link
+          <NavLink
             key={link.href}
             href={link.href}
             className={cn(
@@ -33,7 +33,7 @@ export function SuperAdminNav() {
             )}
           >
             {link.label}
-          </Link>
+          </NavLink>
         );
       })}
     </nav>
