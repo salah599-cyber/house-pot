@@ -76,6 +76,22 @@ export async function sendGameInviteNotifications(input: GameInviteNotificationI
   });
 }
 
+export async function sendGameConfirmedNotification(input: {
+  email: string;
+  userId: string | null;
+  gameTitle: string;
+  link: string;
+}) {
+  await createNotification({
+    email: input.email,
+    userId: input.userId,
+    type: "game_confirmed",
+    title: `You're registered for ${input.gameTitle}`,
+    body: "The host confirmed your seat. You are on the table.",
+    link: input.link,
+  });
+}
+
 export async function sendGameStartedNotification(input: {
   email: string;
   userId: string;

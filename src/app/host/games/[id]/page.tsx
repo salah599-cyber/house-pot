@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { QrJoinCard } from "@/components/games/qr-join-card";
 import { AddGuestForm } from "@/components/games/add-guest-form";
 import { InvitePlayersForm } from "@/components/games/invite-players-form";
+import { RegisterGameParticipantButton } from "@/components/games/register-game-participant-button";
 import { RemoveGameInviteButton } from "@/components/games/remove-game-invite-button";
 import { RemoveGameParticipantButton } from "@/components/games/remove-game-participant-button";
 import { StartGameButton } from "@/components/games/live-session-controls";
@@ -36,6 +37,36 @@ type HostGamePageProps = {
   params: Promise<{ id: string }>;
 };
 
+const removableParticipantStatuses = new Set(["invited", "declined", "waitlist", "guest"]);
+
+function SeatParticipantActions({
+  gameId,
+  participantId,
+  status,
+  canManage,
+}: {
+  gameId: string;
+  participantId: string;
+  status: string;
+  canManage: boolean;
+}) {
+  const canRegister = canManage && status === "invited";
+  const canRemove =
+    canManage && status !== "host" && removableParticipantStatuses.has(status);
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Badge variant="outline">{status}</Badge>
+      {canRegister ? (
+        <RegisterGameParticipantButton gameId={gameId} participantId={participantId} />
+      ) : null}
+      {canRemove ? (
+        <RemoveGameParticipantButton gameId={gameId} participantId={participantId} />
+      ) : null}
+    </div>
+  );
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function HostGamePage({ params }: HostGamePageProps) {
@@ -59,8 +90,7 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
     ["host", "confirmed", "guest"].includes(participant.status),
   ).length;
 
-  const removableParticipantStatuses = new Set(["invited", "declined", "waitlist", "guest"]);
-  const canRemoveParticipants = game.status === "open";
+  const canManageParticipants = game.status === "open";
   const activeGameInvites = game.invites.filter((invite) => isGameInviteActive(invite));
 
   return (
@@ -96,8 +126,8 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
           <CardHeader>
             <CardTitle>Seats</CardTitle>
             <CardDescription>
-              {confirmedCount}/{game.maxPlayers} confirmed. Host is auto-seated; first players
-              to confirm online fill the table.
+              {confirmedCount}/{game.maxPlayers} confirmed. Host is auto-seated. Players can
+              confirm online, or you can register invited players onto the table.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -109,17 +139,12 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
                     <p className="font-medium">
                       {participant.user?.displayName ?? participant.guestName ?? "Invited"}
                     </p>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">{participant.status}</Badge>
-                      {canRemoveParticipants &&
-                      participant.status !== "host" &&
-                      removableParticipantStatuses.has(participant.status) ? (
-                        <RemoveGameParticipantButton
-                          gameId={game.id}
-                          participantId={participant.id}
-                        />
-                      ) : null}
-                    </div>
+                    <SeatParticipantActions
+                      gameId={game.id}
+                      participantId={participant.id}
+                      status={participant.status}
+                      canManage={canManageParticipants}
+                    />
                   </div>
                   <p className="mt-1 text-muted-foreground">
                     Seat {participant.seatNumber ?? "—"}
@@ -144,24 +169,19 @@ export default async function HostGamePage({ params }: HostGamePageProps) {
                       {participant.user?.displayName ?? participant.guestName ?? "Invited"}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{participant.status}</Badge>
-                        {canRemoveParticipants &&
-                        participant.status !== "host" &&
-                        removableParticipantStatuses.has(participant.status) ? (
-                          <RemoveGameParticipantButton
-                            gameId={game.id}
-                            participantId={participant.id}
-                          />
-                        ) : null}
-                      </div>
+                      <SeatParticipantActions
+                        gameId={game.id}
+                        participantId={participant.id}
+                        status={participant.status}
+                        canManage={canManageParticipants}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
             </DesktopTable>
-            {canRemoveParticipants && activeGameInvites.length > 0 ? (
+            {canManageParticipants && activeGameInvites.length > 0 ? (
               <div className="space-y-2 border-t border-border pt-4">
                 <p className="text-sm font-medium">Pending email invites</p>
                 {activeGameInvites.map((invite) => {
