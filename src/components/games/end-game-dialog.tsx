@@ -1,12 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import { endGameAndSettleAction } from "@/server/actions/session";
 import { formatAmount } from "@/lib/dates";
 import type { ParticipantTotals } from "@/lib/games/totals";
 import { participantDisplayName } from "@/lib/games/totals";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,17 +32,20 @@ type EndGameDialogProps = {
   gameId: string;
   seatedPlayers: SeatedPlayer[];
   totalsByParticipant: Record<string, ParticipantTotals>;
+  cashedOutParticipantIds: string[];
 };
 
 export function EndGameDialog({
   gameId,
   seatedPlayers,
   totalsByParticipant,
+  cashedOutParticipantIds,
 }: EndGameDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const cashedOutIds = new Set(cashedOutParticipantIds);
   const [cashOuts, setCashOuts] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       seatedPlayers.map((player) => [
@@ -50,6 +54,22 @@ export function EndGameDialog({
       ]),
     ),
   );
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    setCashOuts(
+      Object.fromEntries(
+        seatedPlayers.map((player) => [
+          player.id,
+          String(totalsByParticipant[player.id]?.totalCashOut ?? 0),
+        ]),
+      ),
+    );
+    setError(null);
+  }, [open, seatedPlayers, totalsByParticipant]);
 
   const totalIn = seatedPlayers.reduce((sum, player) => {
     const totals = totalsByParticipant[player.id];
@@ -80,29 +100,42 @@ export function EndGameDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          {seatedPlayers.map((player) => (
-            <div key={player.id} className="space-y-2">
-              <Label htmlFor={`cashout-${player.id}`}>
-                Seat {player.seatNumber} · {participantDisplayName(player)}
-              </Label>
-              <Input
-                id={`cashout-${player.id}`}
-                type="number"
-                min="0"
-                step="1"
-                value={cashOuts[player.id] ?? "0"}
-                onChange={(event) =>
-                  setCashOuts((current) => ({
-                    ...current,
-                    [player.id]: event.target.value,
-                  }))
-                }
-              />
-              <p className="text-xs text-muted-foreground">
-                In: {formatAmount(totalsByParticipant[player.id]?.totalIn ?? 0)}
-              </p>
-            </div>
-          ))}
+          {seatedPlayers.map((player) => {
+            const isEarlyCashOut = cashedOutIds.has(player.id);
+
+            return (
+              <div key={player.id} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor={`cashout-${player.id}`}>
+                    Seat {player.seatNumber} · {participantDisplayName(player)}
+                  </Label>
+                  {isEarlyCashOut ? (
+                    <Badge variant="secondary">Cashed out early</Badge>
+                  ) : null}
+                </div>
+                <Input
+                  id={`cashout-${player.id}`}
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={cashOuts[player.id] ?? "0"}
+                  disabled={isEarlyCashOut}
+                  onChange={(event) =>
+                    setCashOuts((current) => ({
+                      ...current,
+                      [player.id]: event.target.value,
+                    }))
+                  }
+                />
+                <p className="text-xs text-muted-foreground">
+                  In: {formatAmount(totalsByParticipant[player.id]?.totalIn ?? 0)}
+                  {isEarlyCashOut
+                    ? " · Recorded when they left — undo on the seat map to change"
+                    : null}
+                </p>
+              </div>
+            );
+          })}
 
           <p className={balanced ? "text-emerald-400" : "text-rose-400"}>
             Total out: {formatAmount(totalOut)}{" "}

@@ -7,11 +7,13 @@ import {
   recordQuickBuyInAction,
   recordTransactionAction,
 } from "@/server/actions/session";
+import { CashOutPlayerDialog } from "@/components/games/cash-out-player-dialog";
 import { UndoTransactionButton } from "@/components/games/undo-transaction-button";
 import { REBUY_PRESET_MULTIPLIERS } from "@/lib/constants";
 import { formatAmount, formatDateTime } from "@/lib/dates";
 import type { ParticipantTotals } from "@/lib/games/totals";
-import { participantDisplayName } from "@/lib/games/totals";
+import { participantDisplayName, participantHasCashOut } from "@/lib/games/totals";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -98,13 +100,28 @@ export function LiveSeatMap({
         const playerTransactions = [...(transactionsByParticipant[player.id] ?? [])].sort(
           (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         );
+        const hasCashedOut = participantHasCashOut(player.id, transactions);
 
         return (
-          <Card key={player.id} className="border-border/80 shadow-sm">
+          <Card
+            key={player.id}
+            className={
+              hasCashedOut
+                ? "border-border/80 bg-muted/20 shadow-sm"
+                : "border-border/80 shadow-sm"
+            }
+          >
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center justify-between gap-2 text-base">
-                <span className="min-w-0 truncate">
-                  Seat {player.seatNumber ?? "—"} · {participantDisplayName(player)}
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="min-w-0 truncate">
+                    Seat {player.seatNumber ?? "—"} · {participantDisplayName(player)}
+                  </span>
+                  {hasCashedOut ? (
+                    <Badge variant="secondary" className="shrink-0">
+                      Cashed out
+                    </Badge>
+                  ) : null}
                 </span>
                 <span
                   className={
@@ -163,38 +180,51 @@ export function LiveSeatMap({
                 </div>
               ) : null}
 
-              <div className="space-y-2">
-                <Button
-                  size="lg"
-                  className="h-12 w-full sm:h-9"
-                  disabled={isPending}
-                  onClick={() =>
-                    startTransition(async () => {
-                      await recordQuickBuyInAction(gameId, player.id);
-                      router.refresh();
-                    })
-                  }
-                >
-                  Buy-in / Rebuy {defaultBuyIn}
-                </Button>
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-                  {REBUY_PRESET_MULTIPLIERS.map((multiplier) => (
-                    <Button
-                      key={multiplier}
-                      size="lg"
-                      variant="outline"
-                      disabled={isPending}
-                      className="h-12 flex-col gap-0 px-1 text-xs sm:h-9 sm:text-sm"
-                      onClick={() => recordPreset(player.id, multiplier, hasBuyIn)}
-                    >
-                      <span>{multiplier}×</span>
-                      <span className="text-muted-foreground">
-                        {formatAmount(buyInAmount * multiplier)}
-                      </span>
-                    </Button>
-                  ))}
+              {hasCashedOut ? (
+                <p className="text-xs text-muted-foreground">
+                  This player has left the table. Undo their cash-out below to let them buy in
+                  again.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  <Button
+                    size="lg"
+                    className="h-12 w-full sm:h-9"
+                    disabled={isPending}
+                    onClick={() =>
+                      startTransition(async () => {
+                        await recordQuickBuyInAction(gameId, player.id);
+                        router.refresh();
+                      })
+                    }
+                  >
+                    Buy-in / Rebuy {defaultBuyIn}
+                  </Button>
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                    {REBUY_PRESET_MULTIPLIERS.map((multiplier) => (
+                      <Button
+                        key={multiplier}
+                        size="lg"
+                        variant="outline"
+                        disabled={isPending}
+                        className="h-12 flex-col gap-0 px-1 text-xs sm:h-9 sm:text-sm"
+                        onClick={() => recordPreset(player.id, multiplier, hasBuyIn)}
+                      >
+                        <span>{multiplier}×</span>
+                        <span className="text-muted-foreground">
+                          {formatAmount(buyInAmount * multiplier)}
+                        </span>
+                      </Button>
+                    ))}
+                  </div>
+                  <CashOutPlayerDialog
+                    gameId={gameId}
+                    player={player}
+                    totalIn={totals?.totalIn ?? 0}
+                    disabled={isPending}
+                  />
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         );
