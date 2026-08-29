@@ -30,7 +30,48 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
   const clerkTicket = readSearchParam(resolvedSearchParams, "__clerk_ticket");
   const invite = await getPlatformInviteByToken(token);
 
+  // #region agent log
+  await fetch("http://127.0.0.1:7458/ingest/6fe3fac0-761c-4e93-b74f-56ec9db8b46f", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "ad4f0b" },
+    body: JSON.stringify({
+      sessionId: "ad4f0b",
+      runId: "invite-error",
+      hypothesisId: "A",
+      location: "src/app/invite/[token]/page.tsx:lookup",
+      message: "Invite token lookup",
+      data: {
+        hasInvite: Boolean(invite),
+        status: invite?.status ?? null,
+        expired: invite ? invite.expiresAt < new Date() : null,
+        hasGameToken: Boolean(gameToken),
+        hasClerkTicket: Boolean(clerkTicket),
+        tokenLen: token.length,
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
+
   if (!invite || invite.status !== "pending" || invite.expiresAt < new Date()) {
+    // #region agent log
+    await fetch("http://127.0.0.1:7458/ingest/6fe3fac0-761c-4e93-b74f-56ec9db8b46f", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "ad4f0b" },
+      body: JSON.stringify({
+        sessionId: "ad4f0b",
+        runId: "invite-error",
+        hypothesisId: "A",
+        location: "src/app/invite/[token]/page.tsx:notFound",
+        message: "Invite page returning notFound",
+        data: {
+          reason: !invite ? "missing" : invite.status !== "pending" ? "not_pending" : "expired",
+          status: invite?.status ?? null,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
     notFound();
   }
 
@@ -43,7 +84,7 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
     : `/onboarding?invite=${token}`;
 
   const { auth, currentUser } = await import("@clerk/nextjs/server");
-  const { userId } = await auth();
+  const { userId, sessionStatus } = await auth();
   let signedInEmail: string | null = null;
 
   if (userId) {
@@ -53,6 +94,29 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
       clerkUser?.emailAddresses[0]?.emailAddress?.toLowerCase() ??
       null;
   }
+
+  const emailMatches = Boolean(signedInEmail && signedInEmail === invite.email.toLowerCase());
+
+  // #region agent log
+  await fetch("http://127.0.0.1:7458/ingest/6fe3fac0-761c-4e93-b74f-56ec9db8b46f", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "ad4f0b" },
+    body: JSON.stringify({
+      sessionId: "ad4f0b",
+      runId: "invite-error",
+      hypothesisId: "C",
+      location: "src/app/invite/[token]/page.tsx:auth",
+      message: "Invite page auth state",
+      data: {
+        hasUserId: Boolean(userId),
+        sessionStatus: sessionStatus ?? null,
+        hasSignedInEmail: Boolean(signedInEmail),
+        emailMatches,
+      },
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
 
   if (signedInEmail && signedInEmail !== invite.email.toLowerCase()) {
     return (
@@ -73,6 +137,27 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
       emailAddress: invite.email,
       redirectUrl: inviteReturnUrl,
     });
+
+    // #region agent log
+    await fetch("http://127.0.0.1:7458/ingest/6fe3fac0-761c-4e93-b74f-56ec9db8b46f", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "ad4f0b" },
+      body: JSON.stringify({
+        sessionId: "ad4f0b",
+        runId: "invite-error",
+        hypothesisId: "B",
+        location: "src/app/invite/[token]/page.tsx:clerkInvite",
+        message: "ensureClerkInvitation result",
+        data: {
+          hasInvitation: "invitation" in clerkInvite,
+          hasUrl: "invitation" in clerkInvite ? Boolean(clerkInvite.invitation.url) : false,
+          hasError: "error" in clerkInvite,
+          error: "error" in clerkInvite ? clerkInvite.error : null,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
+    // #endregion
 
     if ("invitation" in clerkInvite && clerkInvite.invitation.url) {
       redirect(clerkInvite.invitation.url);
