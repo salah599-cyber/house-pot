@@ -22,11 +22,19 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
           </CardContent>
         </Card>
       ) : null}
+      <Card className="w-full border-border/60 bg-card/50">
+        <CardContent className="pt-6 text-sm text-muted-foreground">
+          If you registered with Google, use <strong className="text-foreground">Continue with Google</strong>.
+          Password reset only works for accounts that signed up with email and a password.
+        </CardContent>
+      </Card>
       <SignIn
         routing="path"
         path="/sign-in"
-        forceRedirectUrl="/onboarding"
+        withSignUp={false}
+        fallbackRedirectUrl="/onboarding"
         signInUrl="/sign-in"
+        signUpUrl="/sign-in?invite_only=1"
       />
     </div>
   );

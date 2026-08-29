@@ -1,14 +1,18 @@
 import { UserButton } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 
 import { APP_NAME } from "@/lib/constants";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { isHost, isSuperAdmin } from "@/lib/auth/roles";
 import { getCurrentDbUser, getUserRoles } from "@/lib/auth/session";
+import { RESET_PASSWORD_TASK_PATH } from "@/lib/auth/session-tasks";
 import { Button } from "@/components/ui/button";
 import { NavLink } from "@/components/ui/nav-link";
 
 export async function AppHeader() {
-  const user = await getCurrentDbUser();
+  const { sessionStatus } = await auth();
+  const passwordResetRequired = sessionStatus === "pending";
+  const user = passwordResetRequired ? null : await getCurrentDbUser();
   const roles = user ? getUserRoles(user) : [];
   const userIsHost = user ? isHost(roles) : false;
   const userIsSuperAdmin = user ? isSuperAdmin(roles) : false;
@@ -16,12 +20,19 @@ export async function AppHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur supports-[padding:max(0px)]:pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 px-4 sm:h-16">
-        <NavLink href="/" className="text-base font-semibold tracking-tight sm:text-lg">
+        <NavLink
+          href={passwordResetRequired ? RESET_PASSWORD_TASK_PATH : "/"}
+          className="text-base font-semibold tracking-tight sm:text-lg"
+        >
           {APP_NAME}
         </NavLink>
 
         <nav className="flex items-center gap-2 sm:gap-3">
-          {!user ? (
+          {passwordResetRequired ? (
+            <Button asChild variant="outline" size="sm" className="min-h-10">
+              <NavLink href={RESET_PASSWORD_TASK_PATH}>Reset password</NavLink>
+            </Button>
+          ) : !user ? (
             <Button asChild variant="outline" size="sm" className="min-h-10">
               <NavLink href="/sign-in">Sign in</NavLink>
             </Button>

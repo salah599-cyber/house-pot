@@ -4,6 +4,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 
 import { isHost, isPlayer, isSuperAdmin } from "@/lib/auth/roles";
+import { RESET_PASSWORD_TASK_PATH } from "@/lib/auth/session-tasks";
 import { db } from "@/lib/db";
 import { userRoles, users, type Role } from "@/lib/db/schema";
 
@@ -14,7 +15,10 @@ export const getClerkUser = cache(async () => {
 });
 
 export const requireAuth = cache(async () => {
-  const { isAuthenticated, userId } = await auth();
+  const { isAuthenticated, userId, sessionStatus } = await auth();
+  if (sessionStatus === "pending") {
+    redirect(RESET_PASSWORD_TASK_PATH);
+  }
   if (!isAuthenticated || !userId) {
     redirect("/sign-in");
   }

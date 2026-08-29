@@ -2,6 +2,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
+import { PendingTaskGuard } from "@/components/auth/pending-task-guard";
 import { AppHeader } from "@/components/layout/app-header";
 import { APP_NAME } from "@/lib/constants";
 
@@ -28,12 +29,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      taskUrls={{
+        "reset-password": "/session-tasks/reset-password",
+      }}
+    >
       <html
         lang="en"
         className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
       >
         <body className="min-h-full flex flex-col bg-background text-foreground">
+          <PendingTaskGuard />
           <AppHeader />
           <main className="flex-1 safe-bottom">{children}</main>
         </body>
