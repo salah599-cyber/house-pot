@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import { endGameAndSettleAction } from "@/server/actions/session";
 import { formatAmount } from "@/lib/dates";
@@ -55,11 +55,7 @@ export function EndGameDialog({
     ),
   );
 
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
+  function resetCashOuts() {
     setCashOuts(
       Object.fromEntries(
         seatedPlayers.map((player) => [
@@ -69,7 +65,14 @@ export function EndGameDialog({
       ),
     );
     setError(null);
-  }, [open, seatedPlayers, totalsByParticipant]);
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (nextOpen) {
+      resetCashOuts();
+    }
+    setOpen(nextOpen);
+  }
 
   const totalIn = seatedPlayers.reduce((sum, player) => {
     const totals = totalsByParticipant[player.id];
@@ -84,7 +87,7 @@ export function EndGameDialog({
   const balanced = Math.abs(totalIn - totalOut) < 0.05;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="destructive" className="min-h-11 flex-1 sm:flex-none">
           End game & settle
