@@ -19,6 +19,7 @@ type LiveGameActionsProps = {
   status: string;
   seatedPlayers: SeatedPlayer[];
   totalsByParticipant: Record<string, ParticipantTotals>;
+  cashedOutParticipantIds: string[];
   lastTransaction: {
     id: string;
     type: "buy_in" | "rebuy" | "cash_out";
@@ -32,6 +33,7 @@ export function LiveGameActions({
   status,
   seatedPlayers,
   totalsByParticipant,
+  cashedOutParticipantIds,
   lastTransaction,
 }: LiveGameActionsProps) {
   const isActive = status === "active";
@@ -49,6 +51,7 @@ export function LiveGameActions({
               gameId={gameId}
               seatedPlayers={seatedPlayers}
               totalsByParticipant={totalsByParticipant}
+              cashedOutParticipantIds={cashedOutParticipantIds}
             />
           </>
         ) : null}
@@ -68,6 +71,7 @@ export function LiveGameActions({
               gameId={gameId}
               seatedPlayers={seatedPlayers}
               totalsByParticipant={totalsByParticipant}
+              cashedOutParticipantIds={cashedOutParticipantIds}
             />
           </>
         ) : null}

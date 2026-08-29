@@ -39,6 +39,18 @@ const cashOutSchema = z.object({
 
 const occupiedStatuses = ["host", "confirmed", "guest"] as const;
 
+async function participantHasCashOut(gameId: string, participantId: string) {
+  const existing = await db.query.transactions.findFirst({
+    where: and(
+      eq(transactions.gameId, gameId),
+      eq(transactions.participantId, participantId),
+      eq(transactions.type, "cash_out"),
+    ),
+  });
+
+  return Boolean(existing);
+}
+
 async function requireHostGame(gameId: string) {
   const user = await requireRole("host");
   const roles = getUserRoles(user);
@@ -144,6 +156,19 @@ export async function recordTransactionAction(gameId: string, formData: FormData
 
   if (!participant) {
     return { error: "Participant not found at the table." };
+  }
+
+  if (
+    (parsed.data.type === "buy_in" || parsed.data.type === "rebuy") &&
+    (await participantHasCashOut(gameId, parsed.data.participantId))
+  ) {
+    return { error: "Cannot record buy-in or rebuy after a player has cashed out." };
+  }
+
+  if (parsed.data.type === "cash_out") {
+    return {
+      error: "Use the cash-out action on the seat map to record a player leaving early.",
+    };
   }
 
   await db.insert(transactions).values({
@@ -257,6 +282,66 @@ export async function recordQuickBuyInAction(gameId: string, participantId: stri
   return recordTransactionAction(gameId, formData);
 }
 
+export async function cashOutPlayerAction(
+  gameId: string,
+  participantId: string,
+  amount: number,
+) {
+  const user = await requireHostGame(gameId);
+
+  const parsed = cashOutSchema.safeParse({ participantId, amount });
+
+  if (!parsed.success) {
+    return { error: "Invalid cash-out amount." };
+  }
+
+  const game = await db.query.games.findFirst({
+    where: eq(games.id, gameId),
+  });
+
+  if (!game || game.status !== "active") {
+    return { error: "Cash-outs can only be recorded during an active game." };
+  }
+
+  const participant = await db.query.gameParticipants.findFirst({
+    where: and(
+      eq(gameParticipants.id, parsed.data.participantId),
+      eq(gameParticipants.gameId, gameId),
+      inArray(gameParticipants.status, [...occupiedStatuses]),
+    ),
+  });
+
+  if (!participant) {
+    return { error: "Participant not found at the table." };
+  }
+
+  if (await participantHasCashOut(gameId, parsed.data.participantId)) {
+    return { error: "This player has already cashed out." };
+  }
+
+  await db.insert(transactions).values({
+    gameId,
+    participantId: parsed.data.participantId,
+    type: "cash_out",
+    amount: parsed.data.amount.toFixed(2),
+    recordedByUserId: user.id,
+    note: "Left early",
+  });
+
+  await logAudit({
+    actorUserId: user.id,
+    action: "transaction_recorded",
+    entityType: "game",
+    entityId: gameId,
+    summary: `Recorded early cash-out of ${parsed.data.amount}`,
+    metadata: { participantId: parsed.data.participantId },
+  });
+
+  revalidatePath(`/host/games/${gameId}/live`);
+  revalidatePath(`/player/games/${gameId}`);
+  return { success: true };
+}
+
 export async function endGameAndSettleAction(
   gameId: string,
   cashOuts: Array<{ participantId: string; amount: number }>,
@@ -296,11 +381,21 @@ export async function endGameAndSettleAction(
   });
 
   for (const cashOut of cashOuts) {
-    const hasCashOut = existingTransactions.some(
+    const existingCashOut = existingTransactions.find(
       (tx) => tx.participantId === cashOut.participantId && tx.type === "cash_out",
     );
 
-    if (!hasCashOut) {
+    if (
+      existingCashOut &&
+      Math.abs(Number(existingCashOut.amount) - cashOut.amount) >= 0.05
+    ) {
+      return {
+        error:
+          "Early cash-out amounts cannot be changed at settlement. Undo the cash-out on the live seat map if you need to correct it.",
+      };
+    }
+
+    if (!existingCashOut) {
       await db.insert(transactions).values({
         gameId,
         participantId: cashOut.participantId,

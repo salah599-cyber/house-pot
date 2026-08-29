@@ -39,6 +39,15 @@ export function calculateAllParticipantTotals(
   return participantIds.map((id) => calculateParticipantTotals(id, gameTransactions));
 }
 
+export function participantHasCashOut(
+  participantId: string,
+  gameTransactions: Transaction[],
+) {
+  return gameTransactions.some(
+    (tx) => tx.participantId === participantId && tx.type === "cash_out",
+  );
+}
+
 function sumByType(transactions: Transaction[], type: Transaction["type"]) {
   return transactions
     .filter((tx) => tx.type === type)

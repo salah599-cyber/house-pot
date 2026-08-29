@@ -90,6 +90,9 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
         ),
       }
     : null;
+  const cashedOutParticipantIds = game.transactions
+    .filter((transaction) => transaction.type === "cash_out")
+    .map((transaction) => transaction.participantId);
 
   return (
     <div className={`flex w-full flex-col gap-6 ${showMobileBar ? "pb-24 sm:pb-0" : ""}`}>
@@ -115,6 +118,7 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
           status={game.status}
           seatedPlayers={seatedPlayers}
           totalsByParticipant={totalsByParticipant}
+          cashedOutParticipantIds={cashedOutParticipantIds}
           lastTransaction={lastTransaction}
         />
       </div>
