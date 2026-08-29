@@ -7,6 +7,10 @@ import {
   PLATFORM_INVITE_COOKIE,
 } from "@/lib/auth/invite-cookie";
 import {
+  isSessionTaskPath,
+  RESET_PASSWORD_TASK_PATH,
+} from "@/lib/auth/session-tasks";
+import {
   getClientIp,
   rateLimitInvitePage,
   rateLimitJoin,
@@ -20,6 +24,8 @@ const isPublicRoute = createRouteMatcher([
   "/invite/(.*)",
   "/onboarding",
   "/account-disabled",
+  "/session-tasks(.*)",
+  "/sso-callback(.*)",
   "/api/onboarding",
   "/api/webhooks/clerk",
 ]);
@@ -30,6 +36,25 @@ export default clerkMiddleware(async (auth, request) => {
     url.pathname = "/sign-in";
     url.searchParams.set("invite_only", "1");
     return NextResponse.redirect(url);
+  }
+
+  const { sessionStatus } = await auth();
+  const pathname = request.nextUrl.pathname;
+
+  if (sessionStatus === "pending") {
+    if (pathname.startsWith("/api/") && pathname !== "/api/webhooks/clerk") {
+      return NextResponse.json(
+        { error: "Password reset required before continuing." },
+        { status: 401 },
+      );
+    }
+
+    if (!isSessionTaskPath(pathname)) {
+      const url = request.nextUrl.clone();
+      url.pathname = RESET_PASSWORD_TASK_PATH;
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
   }
 
   const ip = getClientIp(request);

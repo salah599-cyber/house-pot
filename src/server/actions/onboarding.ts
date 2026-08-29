@@ -17,6 +17,7 @@ import {
   grantPlayerRole,
   seedSuperAdminIfNeeded,
 } from "@/lib/auth/session";
+import { RESET_PASSWORD_TASK_PATH } from "@/lib/auth/session-tasks";
 import { db } from "@/lib/db";
 import {
   gameInvites,
@@ -35,7 +36,11 @@ export async function completeOnboardingAction(
   setupToken?: string,
 ) {
   const { auth, currentUser } = await import("@clerk/nextjs/server");
-  const { isAuthenticated, userId } = await auth();
+  const { isAuthenticated, userId, sessionStatus } = await auth();
+
+  if (sessionStatus === "pending") {
+    redirect(RESET_PASSWORD_TASK_PATH);
+  }
 
   if (!isAuthenticated || !userId) {
     redirect("/sign-in");
