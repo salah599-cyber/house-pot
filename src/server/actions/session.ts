@@ -7,16 +7,14 @@ import { z } from "zod";
 import { assertGameHost } from "@/lib/auth/permissions";
 import { getUserRoles, requireRole } from "@/lib/auth/session";
 import {
-  buildSettlementTransfers,
-  validateSettlementBalance,
-} from "@/lib/games/settlement";
-import { calculateAllParticipantTotals } from "@/lib/games/totals";
+  regenerateSettlementLines,
+  syncCashOutTransactions,
+} from "@/lib/games/apply-settlement";
 import { logAudit } from "@/lib/audit";
 import { db } from "@/lib/db";
 import {
   gameParticipants,
   games,
-  settlementLines,
   transactions,
 } from "@/lib/db/schema";
 import { getAppUrl } from "@/lib/invites";
@@ -380,67 +378,25 @@ export async function endGameAndSettleAction(
     where: eq(transactions.gameId, gameId),
   });
 
-  for (const cashOut of cashOuts) {
-    const existingCashOut = existingTransactions.find(
-      (tx) => tx.participantId === cashOut.participantId && tx.type === "cash_out",
-    );
+  const syncResult = await syncCashOutTransactions(
+    gameId,
+    user.id,
+    cashOuts,
+    existingTransactions,
+    { allowUpdates: false },
+  );
 
-    if (
-      existingCashOut &&
-      Math.abs(Number(existingCashOut.amount) - cashOut.amount) >= 0.05
-    ) {
-      return {
-        error:
-          "Early cash-out amounts cannot be changed at settlement. Undo the cash-out on the live seat map if you need to correct it.",
-      };
-    }
-
-    if (!existingCashOut) {
-      await db.insert(transactions).values({
-        gameId,
-        participantId: cashOut.participantId,
-        type: "cash_out",
-        amount: cashOut.amount.toFixed(2),
-        recordedByUserId: user.id,
-        note: "Final cash-out",
-      });
-    }
+  if (syncResult.error) {
+    return { error: syncResult.error };
   }
 
-  const allTransactions = await db.query.transactions.findMany({
-    where: eq(transactions.gameId, gameId),
-  });
-
-  const totals = calculateAllParticipantTotals(
+  const settlementResult = await regenerateSettlementLines(
+    gameId,
     seated.map((participant) => participant.id),
-    allTransactions,
   );
 
-  if (!validateSettlementBalance(totals)) {
-    return {
-      error:
-        "Buy-ins and cash-outs do not balance. Check all player amounts before settling.",
-    };
-  }
-
-  const transfers = buildSettlementTransfers(
-    totals.map((entry) => ({
-      participantId: entry.participantId,
-      netResult: entry.netResult,
-    })),
-  );
-
-  await db.delete(settlementLines).where(eq(settlementLines.gameId, gameId));
-
-  if (transfers.length > 0) {
-    await db.insert(settlementLines).values(
-      transfers.map((transfer) => ({
-        gameId,
-        fromParticipantId: transfer.fromParticipantId,
-        toParticipantId: transfer.toParticipantId,
-        amount: transfer.amount.toFixed(2),
-      })),
-    );
+  if ("error" in settlementResult) {
+    return { error: settlementResult.error };
   }
 
   await db
@@ -454,7 +410,7 @@ export async function endGameAndSettleAction(
     entityType: "game",
     entityId: gameId,
     summary: `Settled game "${game.title}"`,
-    metadata: { transferCount: transfers.length },
+    metadata: { transferCount: settlementResult.transferCount },
   });
 
   for (const participant of seated) {
@@ -473,6 +429,84 @@ export async function endGameAndSettleAction(
       link: getAppUrl(`/player/games/${gameId}`),
     });
   }
+
+  revalidatePath(`/host/games/${gameId}`);
+  revalidatePath(`/host/games/${gameId}/live`);
+  revalidatePath(`/player/games/${gameId}`);
+
+  return { success: true };
+}
+
+export async function correctSettlementAction(
+  gameId: string,
+  cashOuts: Array<{ participantId: string; amount: number }>,
+) {
+  const user = await requireHostGame(gameId);
+
+  const game = await db.query.games.findFirst({
+    where: eq(games.id, gameId),
+  });
+
+  if (!game) {
+    return { error: "Game not found." };
+  }
+
+  if (game.status !== "settled") {
+    return { error: "Only settled games can have settlements corrected." };
+  }
+
+  const seated = await db.query.gameParticipants.findMany({
+    where: and(
+      eq(gameParticipants.gameId, gameId),
+      inArray(gameParticipants.status, [...occupiedStatuses]),
+    ),
+  });
+
+  const seatedIds = new Set(seated.map((participant) => participant.id));
+
+  for (const cashOut of cashOuts) {
+    const parsed = cashOutSchema.safeParse(cashOut);
+    if (!parsed.success || !seatedIds.has(parsed.data.participantId)) {
+      return { error: "Invalid cash-out data." };
+    }
+  }
+
+  const existingTransactions = await db.query.transactions.findMany({
+    where: eq(transactions.gameId, gameId),
+  });
+
+  const syncResult = await syncCashOutTransactions(
+    gameId,
+    user.id,
+    cashOuts,
+    existingTransactions,
+    { allowUpdates: true },
+  );
+
+  if (syncResult.error) {
+    return { error: syncResult.error };
+  }
+
+  const settlementResult = await regenerateSettlementLines(
+    gameId,
+    seated.map((participant) => participant.id),
+  );
+
+  if ("error" in settlementResult) {
+    return { error: settlementResult.error };
+  }
+
+  await logAudit({
+    actorUserId: user.id,
+    action: "game_settled",
+    entityType: "game",
+    entityId: gameId,
+    summary: `Corrected settlement for "${game.title}"`,
+    metadata: {
+      corrected: true,
+      transferCount: settlementResult.transferCount,
+    },
+  });
 
   revalidatePath(`/host/games/${gameId}`);
   revalidatePath(`/host/games/${gameId}/live`);
