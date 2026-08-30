@@ -7,7 +7,8 @@ import {
   CashOutSettlementForm,
   isCashOutSettlementBalanced,
 } from "@/components/games/cash-out-settlement-form";
-import { endGameAndSettleAction } from "@/server/actions/session";
+import { correctSettlementAction } from "@/server/actions/session";
+import type { ParticipantTotals } from "@/lib/games/totals";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,7 +19,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { ParticipantTotals } from "@/lib/games/totals";
 
 type SeatedPlayer = {
   id: string;
@@ -27,19 +27,17 @@ type SeatedPlayer = {
   guestName?: string | null;
 };
 
-type EndGameDialogProps = {
+type CorrectSettlementDialogProps = {
   gameId: string;
   seatedPlayers: SeatedPlayer[];
   totalsByParticipant: Record<string, ParticipantTotals>;
-  cashedOutParticipantIds: string[];
 };
 
-export function EndGameDialog({
+export function CorrectSettlementDialog({
   gameId,
   seatedPlayers,
   totalsByParticipant,
-  cashedOutParticipantIds,
-}: EndGameDialogProps) {
+}: CorrectSettlementDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,15 +79,16 @@ export function EndGameDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="destructive" className="min-h-11 flex-1 sm:flex-none">
-          End game & settle
+        <Button variant="outline" className="min-h-11 flex-1 sm:flex-none">
+          Correct cash-outs
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90vh] w-[calc(100%-1rem)] max-w-[calc(100%-1rem)] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>End game and generate settlements</DialogTitle>
+          <DialogTitle>Correct cash-outs and re-settle</DialogTitle>
           <DialogDescription>
-            Enter each player&apos;s final cash-out amount before confirming settlement.
+            Update final cash-out amounts. Settlement transfers will be regenerated
+            and all &quot;marked settled&quot; flags will be reset.
           </DialogDescription>
         </DialogHeader>
 
@@ -103,8 +102,6 @@ export function EndGameDialog({
               [participantId]: value,
             }))
           }
-          cashedOutParticipantIds={cashedOutParticipantIds}
-          lockEarlyCashOuts
         />
 
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -115,7 +112,7 @@ export function EndGameDialog({
             onClick={() =>
               startTransition(async () => {
                 setError(null);
-                const result = await endGameAndSettleAction(
+                const result = await correctSettlementAction(
                   gameId,
                   seatedPlayers.map((player) => ({
                     participantId: player.id,
@@ -133,7 +130,7 @@ export function EndGameDialog({
               })
             }
           >
-            {isPending ? "Settling..." : "Confirm settlement"}
+            {isPending ? "Updating..." : "Confirm correction"}
           </Button>
         </DialogFooter>
       </DialogContent>

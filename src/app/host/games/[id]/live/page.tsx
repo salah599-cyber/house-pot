@@ -135,7 +135,10 @@ export default async function LiveGamePage({ params }: LiveGamePageProps) {
         <Card>
           <CardHeader>
             <CardTitle>Final results</CardTitle>
-            <CardDescription>Game settled. Settlement transfers below.</CardDescription>
+            <CardDescription>
+              Game settled. Use &quot;Correct cash-outs&quot; to fix mistakes and regenerate
+              settlement transfers.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <MobileStack>

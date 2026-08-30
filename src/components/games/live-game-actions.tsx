@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { CorrectSettlementDialog } from "@/components/games/correct-settlement-dialog";
 import { EndGameDialog } from "@/components/games/end-game-dialog";
 import { UndoLastTransactionButton } from "@/components/games/undo-transaction-button";
 import type { ParticipantTotals } from "@/lib/games/totals";
@@ -37,6 +38,7 @@ export function LiveGameActions({
   lastTransaction,
 }: LiveGameActionsProps) {
   const isActive = status === "active";
+  const isSettled = status === "settled";
 
   return (
     <>
@@ -54,6 +56,13 @@ export function LiveGameActions({
               cashedOutParticipantIds={cashedOutParticipantIds}
             />
           </>
+        ) : null}
+        {isSettled ? (
+          <CorrectSettlementDialog
+            gameId={gameId}
+            seatedPlayers={seatedPlayers}
+            totalsByParticipant={totalsByParticipant}
+          />
         ) : null}
         <Button asChild variant="outline">
           <Link href={`/api/host/games/${gameId}/export`}>Export CSV</Link>
@@ -74,6 +83,13 @@ export function LiveGameActions({
               cashedOutParticipantIds={cashedOutParticipantIds}
             />
           </>
+        ) : null}
+        {isSettled ? (
+          <CorrectSettlementDialog
+            gameId={gameId}
+            seatedPlayers={seatedPlayers}
+            totalsByParticipant={totalsByParticipant}
+          />
         ) : null}
         <Button asChild variant="outline" className="min-h-11 flex-1">
           <Link href={`/api/host/games/${gameId}/export`}>Export</Link>
